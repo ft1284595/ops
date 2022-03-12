@@ -1,0 +1,2537 @@
+Linux Services and Security
+
+	OpenSSL
+	OpenSSH
+	dns: bind
+	web: http, httpd(apache), php, mariadb(mysql)
+		lamp
+		nginx(tengine), lnmp
+	file server: ftp, nfs, samba
+	dhcp, pxe
+	iptables
+
+OpenSSL: 
+
+	NIST:
+		保密性:
+			数据保密性
+			隐私性
+		完整性:
+			数据完整性
+			系统完整性
+		可用性
+
+	安全攻击:
+		被动攻击: 窃听
+		主动攻击: 伪装, 重放, 消息篡改, 拒绝服务
+
+	安全机制: 
+		加密,数字签名,访问控制,数据完整性,认证交换,流量填充,路由控制,公证
+
+	安全服务:
+		认证
+		访问控制
+		数据保密性
+			连接保密性
+			无连接保密性
+			选择域保密性
+			流量保密性
+		数据完整性
+		不可否认性
+
+	密码算法和协议:
+		对称加密
+		公钥加密
+		单向加密
+		认证协议
+
+	Linux系统: OpenSSL, gpg(pgp协议的实现)	
+
+	加密算法和协议:
+		对称加密: 加密和解密使用同一个密钥
+			DES: Data Encryption Standard, 在2003年左右被攻破了
+			3DES: 
+			AES: Advanced Encryption Standard, (128, 192,258,384,512 bits)
+			Blowfish
+			Twofish
+			IDEA
+			RC6
+			CAST5
+		
+			特性: 
+				1. 加密解密使用同一个密钥
+				2. 将原始数据分割成固定大小的块,逐个进行加密
+			
+			缺陷:
+				1. 通信对象过多时,密钥过多
+				2. 密钥的分发
+		
+		公钥加密: 密钥是成对儿出现的
+			公钥: 公开给所有人, pub key
+			私钥: 自己留存,必须保证其私密性. secret key
+			特点: 使用公钥加密的数据, 只能使用与之配对的私钥解密, 反之亦然(使用私钥加密的数据也只能使用与之配对的公钥解密)
+
+			功能:
+				数字签名: 主要在于让接收方确认发送方的身份
+				密钥交换: 发送方用对方的公钥加密一个对称密钥, 并发送给对方. 公钥加密通常用来做密钥交换
+				数据加密: 公钥加密技术极少用来做数据加密,因为效率低.通常是对称加密的3个数量级. 所以公钥加密一般只能对数据量很小的数据做加密
+				思考: 怎样安全的将公钥交到对方手中? CA的作用就是来解决这个问题的,CA是一个第3方机构,使用证书来确保你就是你,你的公钥真的是你的公钥.	
+			算法: RSA, DSA, ELGamal
+		
+		单向加密: 只能加密,不能解密. 常用于提取数据指纹
+			特性: 定长输出, 雪崩效应
+			算法:
+				md5: 128 bits
+				sha1: 160 bits
+				sha224
+				sha256
+				sha384
+				sha512
+
+			功能: 
+				完整性:
+
+		密钥交换: IKE
+			公钥加密: 	
+			DH(Deffie-Hellman)
+				A: p(大的素数), g(生成器数字)
+				B: p, g
+
+				A: x
+					--> p^x%g
+
+					p^y%g^x = p^xy%g
+				B: y
+					--> p^y%g
+
+					p^x%g^y = p^xy%g
+	
+	PKI: Public Key Infrasructure
+		签证机构: CA
+		注册机构: RA
+		证书吊销列表: CRL
+		证书存取库:
+
+		X.509: 定义了证书的结构以及认证协议标准
+			版本号
+			序列号
+			签名算法ID
+			发行者名称
+			有效期限
+			主体名称
+			主体公钥
+			发行者唯一标识
+			主体的唯一标识
+			扩展
+			发行者签名
+	
+	SSL: Secure Socket Layer
+	TLS: Transport Layer Security(可以理解为是SSL的增强版)
+		4层网络模型是 应用层-->传输层-->网络层-->物理层, SSL/TLS相当于在应用层到传输层之间的半层协议. 
+		以http协议为例: 如果在传输时调用了SSL/TLS就是https协议,否则就是http. http协议是文本的,而https协议是2进制的. SSL/TLS需要基于ip地址来实现
+		1995: SSL 2.0, Netscape
+		1996: SSL 3.0, Netscape
+		1999: TLS 1.0 
+		2006: TLS 1.1 RFC 4346
+		2008: TLS 1.2
+		2015: TLS 1.3
+
+		SSL/TLS的分层设计:
+			1. 最底层: 基础算法源语的实现, aes, rsa, md5
+			2. 向上一层: 各种算法的实现
+			3. 再向上一层: 组合算法实现的半成品
+			4. 用各种组件拼装而成的各种成品密码学协议/软件
+				tls, ssh
+	
+	OpenSSL: 开源项目
+		三个组件:
+			openssl: 多用途的命令行工具
+			libcrypto: 公共加密库
+			libssl: 库, 实现了ssl以及tls
+		
+		openssl命令: 
+			openssl version: 程序版本号
+
+			标准命令,消息摘要命令,加密命令
+
+			标准命令:
+				enc, ca, req, ...
+
+			对称加密:
+				工具: openssl enc, gpg
+				算法: 3des, aes, blowfish, twofish
+
+				enc命令:
+					//加密
+					[root@localhost ~]# openssl enc -e -des3 -a -salt -in fstab -out fstab.ciphertext
+					//解密
+					[root@localhost ~]# openssl enc -d -des3 -a -salt -in fstab.ciphertext -out fstab
+						-des3 是算法,也可以用其他的, 用openssl ? 查看其他可用的算法
+			
+			单向加密:
+				工具: md5sum, sha1sum, sha224sum, sha256sum, ..., openssl dgst
+					[root@localhost ~]# md5sum fstab
+					599e1192881571e815c26a36ea108ea0  fstab
+
+				dgst命令: openssl dgst -md5 /PATH/TO/SOMEFILE
+					[root@localhost ~]# openssl dgst -md5 fstab
+					MD5(fstab)= 599e1192881571e815c26a36ea108ea0
+				
+				MAC: Message Authentication Code, 单项加密的一种延伸应用,用于实现在网络通信中保证所传输的数据的完整性
+					机制:
+						CBC-MAC
+						HMAC: 使用md5或sha1算法
+			
+			生成用户密码:
+				passwd命令
+					
+					openssl passwd -1 -salt SALT
+						[root@localhost ~]# openssl passwd -1 -salt 12345678
+						Password: 							//这里是输入的密码明文
+						$1$12345678$pnegfIxmUNXHlhM..hQ50.	//将密码明文加密后的结果
+
+			生成随机数:
+				openssl rand -base64|-hex NUM
+					NUM: 表示字节数, -hex时,每个字符4位,出现的字符数为NUM*2
+						[root@localhost ~]# openssl rand -base64 16
+						rZBrClUwZv3x+sBBpLn7RQ==
+						[root@localhost ~]# openssl rand -hex 16
+						a46c983793cc05052a8224370d7436fd
+			
+			公钥加密:
+				加密:
+					算法: RSA, ELGamal(商业算法)
+					工具: gpg, openssl rsautl
+				数字签名:
+					算法: RSA, DSA, ELGamal
+				密钥交换:
+					算法: dh
+
+				DSA: Digital Signature Algorithm
+				DSS: Digital Signature Standard
+				RSA: 
+				
+				生成密钥对:
+					openssl genrsa -out /PATH/TO/PRIVATEKEY.FILE NUM_BITS
+					//生成私钥
+					[root@localhost ~]# openssl genrsa -out rsakey.private 2048
+					//提取公钥, 当你生成了私钥之后,可以根据私钥将公钥推导出来.
+					[root@localhost ~]# openssl rsa -in rsakey.private -pubout
+					此外,当私钥生成之后需要检查私钥文件的权限,应该是只有属主自己有读写权限,其他人没有任何权限.
+					[root@localhost ~]# chmod og= rsakey.private 
+
+					//可以合并上面的生成私钥和修改权限这两个步骤在一条命令中
+					[root@localhost ~]# (umask 077; openssl genrsa -out key.pri 2048)
+					注意: 这里将2条命令写在了一个()中,在bash中()所包含的命令是在子shell中运行的, 所以()中的umask 077不会影响到当前shell中umask的默认值.
+
+					总结: 
+						生成私钥: # (umask 077; openssl genrsa -out key.pri 2048)
+						提取公钥: # openssl rsa -in /PATH/FROM/PRIVATEKEY.FILE -pubout
+
+				随机数生成器:
+					熵池
+					/dev/random: 仅从熵池返回随机数, 随机数用尽,阻塞
+					/dev/urandom: 从熵池返回随机数,随机数用尽,会利用软件生成伪随机数,非阻塞
+						伪随机数不安全
+
+						熵池中随机数的来源:
+							硬盘IO中断时间间隔;(你可以拷贝一个大的文件,在这个过程中会产生大量IO中断,从而增加熵池中随机数的数量)
+							键盘IO中断时间间隔
+
+			CA:
+				公共信任的CA, 私有CA
+				CA的一个主要用途就是以一种较为安全的方式发送公钥(公钥保存在证书里面)
+
+				建立私有CA:
+					openssl
+					OpenCA
+
+				openssl命令:
+					配置文件: /etc/pki/tls/openssl.cnf
+
+					构建私有CA:
+						在确定配置为CA的服务器上生成一个自签证书, 并为CA提供所需要的目录及文件即可
+
+						步骤:
+							(1) 生成私钥(私钥的存放位置定义在openssl的配置文件中)
+									[root@localhost ~]# (umask 077; openssl genrsa -out /etc/pki/CA/private/cakey.pem 4096)
+							(2) 生成自签证书
+									[root@localhost ~]# openssl req -new -x509 -key /etc/pki/CA/private/cakey.pem -out /etc/pki/CA/cacert.pem -days 365
+									You are about to be asked to enter information that will be incorporated
+									into your certificate request.
+									What you are about to enter is what is called a Distinguished Name or a DN.
+									There are quite a few fields but you can leave some blank
+									For some fields there will be a default value,
+									If you enter '.', the field will be left blank.
+									-----
+									Country Name (2 letter code) [XX]:CN 
+									State or Province Name (full name) []:Beijing
+									Locality Name (eg, city) [Default City]:Beijing
+									Organization Name (eg, company) [Default Company Ltd]:MageEdu
+									Organizational Unit Name (eg, section) []:Ops
+									Common Name (eg, your name or your server's hostname) []:ca.magedu.com
+									Email Address []:caadmin@magedu.com
+									[root@localhost ~]# ls /etc/pki/CA
+									cacert.pem  certs  crl  newcerts  private
+												
+									-new: 申城新证书签署请求
+									-x509: 生成自签格式证书,专用于创建私有CA时使用
+									-key: 生成请求时用到的私有文件路径
+									-out: 生成的请求文件路径;如果是自签操作将直接生成签署过的证书
+									-days: 证书的有效时长, 单位是day;
+
+								如果不是自签证书,不要使用-x509选项.
+								思考: 证书中保存的是公钥还是私钥? 
+									证书中保存的是公钥,但是上面的命令中却指定的是私钥 -key /etc/pki/CA/private/cakey.pem
+									这里虽然指定的私钥,在实际过程中使用的是公钥(是从私钥中提取出的).
+							(3) 为CA提供所需的目录及文件
+									~]# mkdir -pv /etc/pki/CA/{certs,crl,newcerts}
+									~]# touch /etc/pki/CA/{serial,index.txt}
+									~]# echo 01>/etc/pki/CA/serial
+					
+					要用到证书进行安全通行的服务器,需要向CA请求签署证书
+						步骤:(以httpd为例, CentOS 6[192.168.4.98]上有httpd服务, CentOS 7[192.168.4.125]是私有CA主机) 
+							(1) 在需要用到证书的主机(CentOS 6)上生成私钥
+									[root@localhost ~]# mkdir /etc/httpd/ssl
+									[root@localhost ~]# cd /etc/httpd/ssl
+									[root@localhost ssl]# (umask 077; openssl genrsa -out /etc/httpd/ssl/httpd.key 2048)
+							(2) 生成证书签署请求
+									[root@localhost ssl]# openssl req -new -key /etc/httpd/ssl/httpd.key -out /etc/httpd/ssl/httpd.csr -days 365
+									You are about to be asked to enter information that will be incorporated
+									into your certificate request.
+									What you are about to enter is what is called a Distinguished Name or a DN.
+									There are quite a few fields but you can leave some blank
+									For some fields there will be a default value,
+									If you enter '.', the field will be left blank.
+									-----
+									Country Name (2 letter code) [XX]:CN
+									State or Province Name (full name) []:Beijing
+									Locality Name (eg, city) [Default City]:Beijing
+									Organization Name (eg, company) [Default Company Ltd]:MageEdu
+									Organizational Unit Name (eg, section) []:Ops
+									Common Name (eg, your name or your server's hostname) []:www.magedu.com
+									Email Address []:webmaster@magedu.com
+
+									Please enter the following 'extra' attributes
+									to be sent with your certificate request
+									A challenge password []:
+									An optional company name []:
+									[root@localhost ssl]# ll
+									total 8
+									-rw-r--r--. 1 root root 1058 Feb 21 00:37 httpd.csr
+									-rw-------. 1 root root 1679 Feb 21 00:35 httpd.key
+							(3) 将请求通过可靠方式发送给CA主机
+									[root@localhost ssl]# scp httpd.csr root@192.168.4.125:/tmp/
+							(4) 在CA主机(CentOS 7)上签署证书
+									[root@localhost ~]# openssl ca -in /tmp/httpd.csr -out /etc/pki/CA/certs/httpd.crt -days 365
+									Using configuration from /etc/pki/tls/openssl.cnf
+									Check that the request matches the signature
+									Signature ok
+									Certificate Details:
+											Serial Number: 1 (0x1)
+											Validity
+												Not Before: Feb 21 21:40:55 2022 GMT
+												Not After : Feb 21 21:40:55 2023 GMT
+											Subject:
+												countryName               = CN
+												stateOrProvinceName       = Beijing
+												organizationName          = MageEdu
+												organizationalUnitName    = Ops
+												commonName                = www.magedu.com
+												emailAddress              = webmaster@magedu.com
+											X509v3 extensions:
+												X509v3 Basic Constraints: 
+													CA:FALSE
+												Netscape Comment: 
+													OpenSSL Generated Certificate
+												X509v3 Subject Key Identifier: 
+													4B:15:B9:CF:05:13:FE:8F:F2:B8:A1:10:CD:12:32:37:60:BA:45:A0
+												X509v3 Authority Key Identifier: 
+													keyid:6D:71:CA:D1:BF:D9:39:65:5F:4E:8F:20:46:7C:F6:08:EF:9D:7B:0C
+
+									Certificate is to be certified until Feb 21 21:40:55 2023 GMT (365 days)
+									Sign the certificate? [y/n]:y
+
+
+									1 out of 1 certificate requests certified, commit? [y/n]y
+									Write out database with 1 new entries
+									Data Base Updated
+
+									[root@localhost ~]# cat /etc/pki/CA/index.txt
+									V	230221214055Z		01	unknown	/C=CN/ST=Beijing/O=MageEdu/OU=Ops/CN=www.magedu.com/emailAddress=webmaster@magedu.com
+
+								签署完证书后需要把签署好的证书copy回请求证书的主机
+									[root@localhost CA]# scp /etc/pki/CA/certs/httpd.crt root@192.168.4.98:/etc/httpd/ssl/
+								可以在CA主机(CentOS 7)上查看证书中的信息	
+									[root@localhost CA]# openssl x509 -in /etc/pki/CA/certs/httpd.crt -noout -serial -subject
+									serial=01
+									subject= /C=CN/ST=Beijing/O=MageEdu/OU=Ops/CN=www.magedu.com/emailAddress=webmaster@magedu.com
+
+
+								在请求签署的机器上(CentOS 6)也可以查看签署的证书中的信息
+									[root@localhost ssl]# openssl x509 -in /etc/httpd/ssl/httpd.crt -noout -serial -subject
+									serial=01
+									subject= /C=CN/ST=Beijing/O=MageEdu/OU=Ops/CN=www.magedu.com/emailAddress=webmaster@magedu.com
+
+					吊销证书:(一般不用我们来做这个事情,等真的要做吊销证书,可以使用openca,这是一个友好的工具用来吊销证书,有web界面)
+						步骤:
+							(1) 客户端获取要吊销的证书的serial(在使用证书的主机[CentOS 6]执行)
+								[root@localhost ssl]# openssl x509 -in /etc/httpd/ssl/httpd.crt -noout -serial -subject
+								serial=01
+								subject= /C=CN/ST=Beijing/O=MageEdu/OU=Ops/CN=www.magedu.com/emailAddress=webmaster@magedu.com
+							(2) CA主机(CentOS 7)吊销证书
+									先根据可数段提交的serial和subject信息,对比其与本机数据库index.txt中存储的是否一致
+									
+									[root@localhost CA]# ll /etc/pki/CA/newcerts/
+									total 8
+									-rw-r--r-- 1 root root 5881 Feb 21 15:41 01.pem
+									吊销:
+										# openssl ca -revoke /etc/pki/CA/newcerts/SERIAL.pem
+											其中SERIAL要换成证书真正的序列号; (本例中是01)
+							(3) 生成吊销证书的吊销编号(第一次吊销证书时执行)
+									# echo 01 > /etc/pki/CA/crinumber
+							(4) 更新证书吊销列表
+									# openssl ca -gencrl -out thisca.crl		//thisca是吊销列表的名字
+
+									查看crl文件:
+										# openssl crl -in /PATH/FROM/CRL_FILE.crl -noout -text
+
+	博客作业: 加密解密技术基础,PKI及创建私有CA
+
+回顾: OpenSSL
+
+	私有CA: OpenSSL
+		签证, CRL(证书吊销列表)
+
+DNS and BIND
+
+	DNS: Domain Name Service, 协议(C/S, 默认端口:53/udp, 53/tcp), 应用层协议
+	BIND: Bekerley Internat Name Domain(DNS协议的实现), 后来已交给了ISC(www.isc.org)
+
+	TCP: 面向连接的协议
+	UDP: User Datagram Protocol,无连接协议
+
+	本地名称解析配置文件: hosts
+		linux: /etc/hosts
+		windows: %WINDOWS%/system32/drivers/etc/hosts
+		1.1.1.1 www.magedu.com
+		1.2.2.2 www.apple.com
+	
+	Top Level Domain: tld
+		com, net, edu, org, mil, gov, int
+
+		三类: 组织域,国家域(.cn,.iq,.hk,.tw), 反向域
+
+	DNS查询类型:
+		递归查询: 只请求一次,然后就能获得结果
+		迭代查询: 请求之后,有可能让你再去请求其他的地方. 例如: 查询www.baidu.com. 首先去找根., 根返回这不归他管,
+		请你去找com域,然后你再去请求.com,逐级向下
+
+	名称服务器: 域内负责解析笨鱼内的名称的主机
+		根服务器: 13组服务器
+
+	解析类型:
+		正向: Name --> IP
+		反向: IP --> Name
+		反向解析和正向解析是完全不同的名称空间, 是不同的解析树. 所以它们是可以在不同组的主机上的.
+
+	DNS服务器的类型:
+		主DNS服务器
+		辅助DNS服务器
+		缓存DNS服务器
+		转发器
+
+		主DNS服务器: 维护所负责解析的域内解析库服务器: 解析库有管理维护 
+		从DNS服务器: 从主DNS服务器或其它的从DNS服务器那里"复制"(区域传递)一份解析库
+			解析库的内容是:
+				序列号: 解析库的版本号, 前提: 主服务器解析库内容发生变化, 其序列递增
+				刷新时间间隔: 从服务器从主服务器请求同步解析库的时间间隔
+				重试时间间隔: 从服务器从主服务器请求同步解析库失败时, 再次尝试的时间间隔
+				过期时长: 从服务器始终联系不到主服务器时, 多久之后放弃从服务器角色,停止提供服务
+
+			"通知"机制: 在刷新时间的间隔,如果主服务器自身数据发生变化时,可以通知从服务器来同步一次最新的数据.
+			这样可以使从服务器始终和主服务器的数据保持一致.
+
+		区域传递:
+			全量传递: 传递真个解析库
+			增量传递: 传递解析库变化的那部分内容
+
+	DNS:
+		Domain:
+			正向: FQDN --> IP	
+			反向: IP --> FQDN
+
+			各需要一个解析库来分别负责本地域名的正向和反向解析
+				正向区域
+				反向区域
+
+		FQDN: Full Qualified Domain Name
+			www.mageedu.com.
+
+	一次完整的查询请求经过的流程
+		Client --> hosts文件 --> DNS Service
+			Local Cache --> DNS Server(recursion) --> Server Cache --> iteration(迭代查询) --> [根(服务器) --> 顶级域 --> 一级域 --> ...]
+
+			解析答案:
+				肯定答案: 正确解析了请求的结果
+				否定答案: 请求的条目不存在等原因导致无法返回结果
+
+				权威答案
+				非权威答案
+
+	区域解析库: 由众多资源记录(RR)组成	
+		资源记录: Resource Record, RR
+			记录类型: A, AAAA, PTR, SOA, NS, CNAME, MX
+				A(主机名-->ip), AAAA(主机名-->ipv6), PTR(ip-->主机名),SOA(用来定义一个域是谁负责的), 
+				NS(name space服务器), CNAME(服务器的别名), MX(邮件交换器)
+
+			对于任何一个区域解析库,它的第一条记录的类型必须是SOA
+			SOA: Start Of Authority, 起始授权记录: 一个区域解析库有且仅能有一个SOA记录, 而且必须为解析库的第一条记录
+			A: internet Address, 作用, FQDN --> IP
+			AAAA: FQDN --> IPv6
+			PTR: PoinTeR, IP --> FQDN
+			NS: Name Server, 专用于表明当前区域的DNS服务器
+			CNAME: Canonical Name, 别名记录
+			MX: Mail eXchanger, 邮件交换器
+
+		资源记录定义的格式:
+			语法: name [TTL] 	IN 	rr_type 	value
+				TTL: 客户端解析得到结果以后可缓存结果的时长, 单位是秒
+				IN: internet, 这是一个关键字
+				rr_type: 资源记录类型
+
+			注意: 
+				(1) TTL 可以从全局继承
+				(2) @可以用于引用当前区域的名字
+				(3) 同一个名字可以通过多条记录定义多个不同的值: 此时DNS服务器会以轮询方式响应
+				(4) 同一个值也可以有多个不同的名字: 通过多个不同的名字指向同一个值定义: 通过多个不同的名字可以找到同一个主机, 仅此而已
+
+			SOA: 
+				name: 当前区域的名字, 例如"magedu.com." 			//最后面这个.表示根,不能省略
+				value: 由多个部分组成
+					(1) 当前区域的主DNS服务器的FQDN,也可以使用当前区域的名字: @
+					(2) 当前区域管理员的邮箱地址: 但地址中不能使用@符号, 一般用.替换, 例如: linuxedu.magedu.com
+					(3) (主从服务协调属性的定义以及否定的答案的统一的TTL)
+				
+				例如:
+					magedu.com 	86400 	IN 	SOA		ns.magedu.com.	nsadmin.magedu.com.		(
+								2015042201	;序列号
+								2H			;刷新时间
+								10M			;重试时间
+								1W			;过期时间
+								1D 			;否定答案的TTL值
+					)
+			
+			NS: 
+				name: 当前区域的名字
+				value: 当前区域的某DNS服务器的名字, 例如ns.magedu.com.
+					注意: 一个区域可以有多个NS记录
+				
+				例如:
+					magedu.com.			IN		NS		ns1.magedu.com.
+					magedu.com.			IN		NS		ns2.magedu.com.
+
+				注意:
+					(1) 相邻的两个资源记录的name相同时, 手续的可省略
+					(2) 对NS记录而言, 任何一个ns记录后面的服务器名字, 都应该在后续有一个A记录
+			
+			MX:
+				name: 当前区域的名字
+				value: 当前区域的某邮件服务器(smtp服务器)的主机名
+					一个区域内,MX记录可以有多个: 但每个记录的value之前应该有一个数字(0-99), 表示此服务器的优先级,数字越小优先级越高
+
+				例如:
+					magedu.com.			IN		MX	10	mx1.magedu.com.
+										IN		MX	20	mx2.magedu.com.			//相邻的亮条记录的NAME名字相同,则可以省略
+			
+				注意:
+					(1) 对MX记录而言, 任何一个MX记录后面的服务器名字, 都应该在后续有一个A记录
+			
+			A: 
+				name: 某主机的FQDN, 例如www.magedu.com.
+				value: 主机名对应主机的IP地址
+
+				例如:
+					www.magedu.com.		IN		A	1.1.1.1
+					www.magedu.com.		IN		A	1.1.1.2
+
+					mx1.magedu.com.		IN		A	1.1.1.3
+					mx2.magedu.com.		IN		A	1.1.1.3
+
+				注意:
+					*.magedu.com.		IN		A	1.1.1.4
+					magedu.com.			IN		A	1.1.1.4
+
+					避免用户写错名称是给出错误答案, 可以通过泛域名解析进行解析之某特定地址
+
+			AAAA: 
+				name: FQND
+				value: IPv6
+			
+			PTR:
+				name: IP, 有特定的格式, 把IP地址反过来写, 1.2.3.4,要写作4.3.2.1: 而又特定后缀: in-addr.arpa.,
+						所以完整写法为: 4.3.2.1.in-addra.arpa.
+				value: FQDN
+
+				例如:
+					4.3.2.1.in-addr.arpa. 		IN	PTR		www.magedu.com
+					所以如果上面的4.3.2.1中3.2.1是网络地址,那么简写成:
+						4	IN	PTR		www.magedu.com.
+					
+					注意: 网络地址和后面的后缀可以省略, 但是主机地址依然需要反着写
+			
+			CNAME: 
+				name: 别名的FQDN
+				value: 正式名字的FQDN
+
+				例如:
+					web.magedu.com.		IN		CNAME		www.magedu.com.
+
+回顾: dns服务系统的基础知识, DNS资源记录定义的方法
+
+	dns: udp, tcp 名称解析服务器, 53/udp, 53/tcp
+
+	查询:
+		递归查询: 只请求一次,然后就能获得结果
+		迭代查询: 请求之后,有可能让你再去请求其他的地方. 例如: 查询www.baidu.com. 首先去找根., 
+			根返回这不归他管,请你去找com域,然后你再去请求.com,逐级向下
+
+	解析: 正向, 反向
+		权威, 非权威
+
+	主,从DNS服务器: 区域传送
+		全量传递
+		增量传递
+
+		SOA:
+			序列号,刷新时间,重试时间,过期时间,否定的应答TTL:
+			默认是秒(S), H(小时), D(天), M(分钟), W(星期)
+
+	BIND: 
+		RR类型: A, PTR, NS, MX, CNAME, SOA, AAAA
+
+	语法:
+		name 	[TTL] 	IN 	rr_type		value
+
+DNS and BIND(2)
+
+	子域授权: 每个域的名称服务器,都是通过其上级名称服务器在解析库中进行授权
+		类似根于授权tld
+			.com.		IN		NS		ns1.com.
+			.com.		IN		NS		ns2.com.
+			ns1.com.	IN		A		2.2.2.1
+			ns2.com.	IN		A		2.2.2.2
+
+		例如: magedu.com. 在.com的名称服务器上, 解析库中添加资源记录
+			magedu.com.			IN		NS		ns1.magedu.com.
+			magedu.com.			IN		NS		ns2.magedu.com.
+			magedu.com.			IN		NS		ns3.magedu.com.
+			ns1.magedu.com.		IN		A		3.3.3.1
+			ns2.magedu.com.		IN		A		3.3.3.2
+			ns3.magedu.com.		IN		A		3.3.3.3
+
+		glue record: 粘合记录, 它用于实现将上级服务器和下级服务器建立关联关系, 上级服务器将某个子域的解析能力授予这个子域中的某台服务器.
+	
+	域名注册:
+		代理商: 万网,新网
+
+		注册完成以后,想自己用专用服务来解析?
+		(1) 登录管理后台: 把NS记录指向的服务器名称,和对应A记录指向的服务器地址修改为你自己的地址
+
+	BIND的安装配置:
+
+		dns服务, 程序包名bind, 程序名named
+
+		程序包:
+			bind
+			bind-libs
+			bind-utils
+
+			bind-chroot: /var/named/chroot/
+				bind-chroot可以将dns服务圈定在一个很小的范围,如果dns服务被入侵(早期的时候很容易被入侵),
+					那么最多只会影响到这个小的范围而不会影响到真个主机
+		
+		bind:
+			服务脚本:	/etc/rc.d/init.d/named
+			主配置文件: /etc/named.conf, /etc/named.rfc1912.zones, /etc/rndc.key
+			解析库文件: /var/named/ZONE_NAME.ZONE
+
+				注意: 
+					(1) 一台物理服务器可同时为多个区域提供解析
+					(2) 必须要有根区域文件 name.ca(默认是有centos的rpm包直接提供的, 这里的ca并不是认证的意思)
+					(3) 应该有两个(如果包括ipv6的,应该有更多个) 实现localhost和本地会换地址的解析库
+
+			rndc: remote name domain controller, 默认与bind安装在同一主机,且只能通过127.0.0.1来连接named进程, 用于提供辅助性的管理功能
+				953/tcp
+
+		主配置文件:
+			全局配置: options {}
+			日志子系统配置: logging {}
+			区域定义: 本机能够为哪些zone进行解析,就要定义哪些zone
+				zone "ZONE_NAME" IN {}
+			
+			注意: 任何服务程序如果期望其能够通过网络被其他主机访问,至少应该监听在一个能与外部主机通信的IP地址上
+		
+		如何将一台主机配置为缓存名称服务器
+			缓存名称服务器的配置:
+				在配置文件中开放监听外部地址即可:
+				
+				dnssec:
+					强烈建议测试时关闭dnssec(除非你申请了能够在互联网中的dns服务器认可的dnssec密钥)
+					
+					dnssec-enable no;
+    				dnssec-validation no;
+
+		配置主DNS名称服务器:
+			在缓存名称服务器的基础上添加zone的相关配置就可以了.
+			(1) 在主配置文件中定义区域
+				zone "ZONE_NAME" IN {
+					type {master|slave|hint|forward};
+					file "ZONE_NAME.zone";
+				}
+
+			(2) 定义区域解析库文件
+				出现的内容:
+					宏定义: 以$开头的, 例如: $TTL 86400	
+					资源记录: 
+
+					示例:
+					[root@localhost named]# cat /var/named/magedu.com.zone 
+
+					$TTL 86400
+					$ORIGIN magedu.com.
+					@       IN      SOA     ns1.magedu.com.     admin.magedu.com(
+											2015042201
+											1H
+											5M
+											7D
+											1D
+					)
+
+							IN      NS      ns1
+							IN      NS      ns2
+							IN      MX  10  mx1
+							IN      MX  20  mx2
+					ns1     IN      A       192.168.4.100
+					ns2     IN      A       192.168.4.101
+					mx1     IN      A       192.168.4.102
+					mx2     IN      A       192.168.4.103
+					www     IN      A       192.168.4.104
+					www     IN      A       192.168.4.105
+					ftp     IN      CNAME   www
+
+		测试命令: dig
+			dig [-t type] name [@SERVER] [query options]
+
+				dig用于测试dns系统,因此,不会查询hosts文件进行解析
+
+				查询选项:
+					+[no]trace: 跟踪解析过程
+					+[no]recurse: 进行递归解析
+
+					[root@localhost named]# dig -t A www.magedu.com @192.168.4.125
+					[root@localhost named]# dig -t NS magedu.com @127.0.0.1
+					[root@localhost named]# dig -t MX magedu.com @127.0.0.1
+					[root@localhost named]# dig -t CNAME magedu.com @127.0.0.1
+					[root@localhost named]# dig -t SOA magedu.com @192.168.4.125
+				
+				测试反向解析:
+					dig -x IP @SERVER
+						[root@localhost named]# dig -x 192.168.4.100 @192.168.4.125
+					
+				模拟区域传送:
+					dig -t axfr ZONE_NAME @SERVER
+
+					//正向解析库
+					[root@localhost named]# dig -t axfr magedu.com @192.168.4.125
+					//反向解析库
+					[root@localhost named]# dig -t axfr 4.168.192.in-addr.arpa @192.168.4.125
+			
+
+			host命令:
+				host [-t type] name [SERVER]
+				[root@localhost cdrom]# host -t A www.magedu.com 192.168.4.125
+			
+			nslookup命令:
+				nslookup [-option] [name | -] [server]
+
+				交互式模式:
+					nslookup>
+						server IP: 指明使用哪个DNS server进行查询
+						set q=RR_TYPE: 指明查询的资源记录类型
+						NAME: 要查询的名称
+
+					[root@localhost cdrom]# nslookup
+					> server 192.168.4.125
+					Default server: 192.168.4.125
+					Address: 192.168.4.125#53
+					> set q=A
+					> www.magedu.com
+					Server:		192.168.4.125
+					Address:	192.168.4.125#53
+
+					Name:	www.magedu.com
+					Address: 192.168.4.105
+					Name:	www.magedu.com
+					Address: 192.168.4.104
+					> set q=NS
+					> magedu.com
+					Server:		192.168.4.125
+					Address:	192.168.4.125#53
+
+					magedu.com	nameserver = ns2.magedu.com.
+					magedu.com	nameserver = ns1.magedu.com.
+					> 
+
+		反向区域:
+
+			区域名称: 网络地址的反写.in-addr.arpa.
+				172.16.100. --> 100.16.172.in-addr.arpa.
+
+			(1) 定义区域
+				zone "ZONE_NAME" IN {
+					type {master|slave|forward}
+					file "网络地址.zone"
+				};
+			(2) 区域解析库文件
+				注意: 反向区域不需要MX,A和AAAA记录, 以PTR记录为主
+
+				示例:
+				[root@localhost named]# cat /var/named/192.168.4.zone 
+				$TTL 86400
+				$ORIGIN 4.168.192.in-addr.arpa.
+				@		IN		SOA		ns1.magedu.com. admin.magedu.com. (
+										2015042201
+										1H
+										5M
+										7D
+										1D)
+						IN		NS		ns1.magedu.com.
+						IN		NS		ns2.magedu.com.
+				100		IN		PTR		ns1.magedu.com.
+				101		IN		PTR		ns2.magedu.com.
+				102		IN		PTR		mx1.magedu.com.
+				103		IN		PTR		mx2.magedu.com.
+				104		IN		PTR		www.magedu.com.
+				105		IN		PTR		www.magedu.com.
+
+
+	主从复制:
+		1. 前提是:应该为一台独立的名称服务器
+		2. 主服务器的区域解析库文件必须有一条NS记录指向从服务器
+		3. 从服务器只需要定义区域,而无需提供解析库文件(因为这个文件从主服务器传送过来), 解析库文件应该放置于/var/named/slaves/目录中(这个目录named用户有写权限)
+		4. 主服务器得允许从服务器做区域传送
+		5. 主从服务器的时间应该同步,可以通过ntpd进行.
+		6. bind程序的版本应该保持一致: 否则, 应该从高,主低(即高版本应该能兼容低版本)
+
+		定义从区域的方法:
+			zone "ZONE_NAME" IN {
+				type slave;
+				masters { MASTER_IP; };
+				file "slaves/ZONE_NAME.zone";
+			};
+
+	rndc:
+		rndc --> rndc (tcp/953)
+
+		rndc COMMAND
+
+		rndc -h: 显示帮助列表
+
+		COMMAND:
+			reload: 重载朱被指文件和区域解析库文件
+			reload zone: 重载区域解析库文件
+			retransfer zone: 手动启动区域传送流程, 而不管序列号是否增加
+			notify zone: 重新对区域传送发通知
+			reconfig: 重载主配置文件
+			querylog: 开启或关闭查询日志.(一般不开启,因为记录日志的I/O操作会拖慢性能,只有才定位错误的时候才启用.)
+			status: 可以查看rndc的信息
+			trace: 递增debug级别
+			trace LEVEL: 指定使用的级别
+	
+回顾: bind的安装配置, 测试工具, 正向解析区域, 反向解析区域, 主从同步
+
+	bind的安装: bind, bind-libs, bind-utils
+
+	正向解析区域:
+		(1) zone "ZONE_NAME" IN {
+			type master;
+			file "ZONE_NAME.zone";
+		};
+
+		(2) 区域解析库文件
+			SOA, NS, MX, A, CNAME
+	
+	反向解析区域:
+		(1) zone "Reverse_Net_Addr.in-addr.arpa" IN {
+			type master;
+			file "SOMEFILE.zone";
+		};
+		(2) 区域解析库
+			SOA, NS, PTR
+
+	测试工具: dig, host, nslookup
+
+	主从同步:
+		(1) 只需定义区域
+
+DNS and BIND(3)
+	子域授权: 分布式数据库
+
+	正向解析区域子域授权方法:
+
+		定义一个子区域:
+			ops.magedu.com.				IN		NS		ns1.ops.magedu.com.
+			ops.magedu.com.				IN		NS		ns2.ops.magedu.com.
+			ns1.ops.magedu.com.			IN		A		1.1.1.1
+			ns2.ops.magedu.com.			IN		A		1.1.1.2
+
+			fin.magedu.com.				IN		NS		ns1.fin.magedu.com.
+			fin.magedu.com.				IN		NS		ns2.fin.magedu.com.
+			ns1.fin.magedu.com.			IN		A		3.1.1.1
+			ns2.fin.magedu.com.			IN		A		3.1.1.2
+
+		定义转发服务器:
+			注意: 被转发的服务器需要能够为请求者做递归, 否则, 转发请求不予进行.
+
+			(1) 全局转发: 凡是非本机所负责解析的区域的请求, 通通转发给指定的服务器
+				Options {
+					forward {first|only}
+					forwarders 
+				}
+
+			(2) 区域转发: 仅转发特定区域的请求至某服务器
+				zone "ZONE_NAME" IN {
+					type forward;
+					forward {first|only}
+					forwarders
+				}
+
+			如果同时开启全局转发和区域转发,那么如果请求能精确匹配到区域转发则优先使用区域转发,如果请求找不到对应的区域转发,再使用全局转发.
+			
+			注意: 关闭dnssec功能(除非你申请了能够在互联网中的dns服务器认可的dnssec密钥)
+				dnssec-enable no;
+				dnssec-validation no;
+		
+		bind中基础的安全相关的配置:
+			acl: 把一个或多个主机归并为一个集合,并通过一个同一的名称调用
+				acl acl_name{
+					ip1;
+					ip2;
+					net/prelen;
+				};
+			示例:
+				acl mynet {
+					172.16.0.0/16;
+				};
+
+				acl slaves {
+					172.16.100.12;
+					127.0.0.1;
+				}
+
+			acl默认有四个内置的acl:
+				none: 没有任何主机
+				any: 任意主机
+				local: 本机
+				localnet: 本机的IP同掩码运算后得到的网络地址
+			
+			注意: 只能先定义, 后使用. 因此, 其一般定义在配置文件中options的前面
+
+		访问控制的指令: (以下这些指令的大括号{}中可以出现的值,可以是acl定义的名称,比如上面定义的mynet, salves等等)
+			allow-query {}: 允许查询的主机: 白名单. 这个指令可以写在options或者zone中, 不同的节点下表示的范围不同.
+			allow-transfer {}: 允许区域传送的主机: 白名单
+			allow-recursion {}: 允许递归的主机: 白名单
+			allow-update {}: 允许更新区域数据库中的内容
+
+			示例:
+			zone "magedu.com" IN {
+				type master;
+				file "magedu.com.zone";
+				allow-query { any };
+				allow-transfer { slaves };
+				allow-update { none };
+			};
+
+	bind view:
+		视图: 
+			一个bind服务器可定义多个view, 每个view中可定义一个或多个zone: 
+			每一个view用来匹配一组客户端:
+			多个view内可能需要对同一个区域进行解析, 但使用不同的区域解析库文件:
+			
+			view VIEW_NAME {
+				match-clients {};
+			}
+
+			注意:
+				(1) 一旦启用了view, 所有的zone都只能定义在view中
+				(2) 仅有必要在匹配到允许递归请求的客户所在view中定义根区域
+				(3) 客户端请求到达时, 是自上而下检查每个view所服务的客户端列表, 一旦匹配到一个view就不会继续向下寻找其他的view了.
+
+			CDN: Content Delivery Network
+
+			智能DNS:
+				dnspod
+				dns.la		
+	
+	编译安装bind:
+		isc.org:
+			bind-9.8
+			bind-9.9
+			bind-10(和9版本的差异非常大)
+
+		bind-9.9.
+			# tar
+			# cd 
+			# groupadd -r -g 53 named
+			# useradd -r -u 53 -g 53 named
+			# ./configure --prefix=/usr/local/bind9 --sysconfdir=/etc/named/ --disable-ipv6 --disable-chroot --enable-threads
+			# make
+			# make install
+		
+		手动编译安装的问题(坏处):
+			(1) 有可能没有配置文件(/etc/named.conf, /etc/named.rfc1912.zones等等),或者是一个空的配置文件
+			(2) 没有任何区域解析库文件,包括那13个根的解析库文件
+			(3) 没有rndc的相关配置文件
+			(4) 编译安装的named在/etc/rc.d下面是没有对应的脚本的,所以不能用service命令来管理named. 
+		所有这些文件都得手动创建,而rpm包安装的bind会提供这些文件.
+
+		编译安装完成后还有一些步骤要做:
+			(1) 导出编译出来的二进制文件到PATH变量中
+				在/etc/profile.d/目录下创建一个sh文件,将编译好的可执行文件的路径加入到当前系统的PATH环境变量中去
+				# vim /etc/profile.d/named.sh
+				export PATH=/usr/local/bind9/bin:/usr/local/bind9/sbin:$PATH 
+				别忘了加载这个文件
+				# . /etc/profile.d/named.sh
+				验证是否生效
+				# echo $PATH
+			(2) 导出编译出来的库文件以便其他程序可以使用
+				在/etc/ld.so.conf.d/目录下创建一个conf文件, 将编译好的库文件导出
+				# vim /etc/ld.so.conf.d/named.conf
+				/usr/local/bind9/lib
+				然后通知系统生成新的库文件搜索路径
+				#ldconfig -v
+			(3) 导出头文件
+				#ln -sv /usr/local/bind9/include /usr/include/named
+			(4) 将bind9的帮助文档的路径增加到man page的搜索路径中去
+				bind9的帮助文档在它的源码包中的share目录中
+				# vim /etc/man.config
+				在文件中新增加一条MANPATH
+				MANPATH /usr/local/bind9/share/man
+
+		配置编译安装的bind9
+			(1) 创建named.conf
+				# vim /etc/named/named.conf				//这里比rpm安装出来的文件目录多了一级named,因为安装的时候sysconfdir=/etc/named/
+				options {
+					directory "/var/named";
+				};
+
+				zone "." IN {
+					type hint;
+					file "named.ca";
+				};
+
+				zone "localhost" IN {
+					type master;
+					file "localhost.zone";
+					allow-update { none; };
+				};
+
+				zone "0.0.127.in-addr.arpa" IN {
+					type master;
+					file "named.local";
+					allow-update { none; };
+				};
+
+				# mkdir /var/named
+				# named-checkconf 
+			
+			(2) 创建所有区域解析库文件
+				根文件的解析可以通过dig命令生成(name.ca)
+				[root@localhost ~]# dig -t NS . @192.168.4.125 > /var/named/named.ca		//也可以使用 # dig -t NS . 
+
+				# vim /var/named/localhost.zone
+				$TTL 1D
+				@				IN			SOA		localhost.		admin.localhost. (
+													2015042501
+													1h
+													5m
+													7d
+													1d
+				)
+				localhost.		IN			A		127.0.0.1
+
+				# vim /var/named/named.local
+				$TTL 1D
+				@				IN			SOA		localhost.		admin.localhost. (
+													2015042501
+													1h
+													5m
+													7d
+													1d
+				)
+								IN			NS		localhost.
+				1				IN			PTR		localhost.
+
+				# chmod 640 /var/named/*
+				# chown :named /var/named/*
+				# chmod 640 /etc/named/named.conf
+				# chown :named /etc/named/named.conf
+
+				到这一步,我们就将这个主机配置成了一个缓存名称服务器(NS)
+
+			(3) 启动服务
+				# named -u named -f -g -d 3			//这是打印所有输出
+				验证服务是否启动
+				# ss -tunl | grep :53
+
+				如果要后台运行
+				# named -u named
+				关闭服务
+				# killall named
+			
+			(4) 继续配置该主机,使其能够解析一个区域
+				# vim /etc/named/named.conf
+
+				options {
+					directory "/var/named";
+				};
+
+				zone "." IN {
+					type hint;
+					file "named.ca";
+				};
+
+				zone "localhost" IN {
+					type master;
+					file "localhost.zone";
+					allow-update { none; };
+				};
+
+				zone "0.0.127.in-addr.arpa" IN {
+					type master;
+					file "named.local";
+					allow-update { none; };
+				};
+
+				//新增加一个区域
+				zone "magedu.com" IN {
+					type master;
+					file "magedu.com.zone";
+					allow-update { none; };
+				};
+
+				然后创建这个区域文件
+				# vim /var/named/magedu.com.zone
+				$TTL 86400
+				$ORIGIN magedu.com.
+				@				IN			SOA			ns.magedu.com. 		admin.magedu.com. (
+														2015042501
+														2h
+														10m
+														1w
+														1d
+				)
+								IN			NS			ns
+				ns				IN			A			172.16.100.11
+				www				IN			A			172.16.100.11
+
+				# chmod 640 magedu.com.zone
+				# chown :named magedu.com.zone
+				现在就可以解析区域了
+				重启服务之后就可以生效了, 可以使用dig命令做测试
+				# dig -t A www.magedu.com @172.16.100.11
+				如果你使用rndc,这时会报错
+				# rndc reload
+				rndc: neither /etc/named/rndc.conf nor /etc/named/rndc.key was found		//因为我们是手动编译的,所以还没有配置
+				接下来配置rndc, 首先需要有配置文件, 它的配置文件是用命令生成的.
+				# rndc-confgen			//如果你这一步命令卡住了,因为这个命令需要去熵池中取随机数,而此时熵池中的随机数不够用了,就阻塞了.
+
+				//解决方法是使用一下面这个参数 生成随机数
+				# rndc-confgen -r /dev/urandom		
+				//上面这个命令会输出两个文件(rndc.conf和rndc-key的部分是要写在named.conf中)的内容到屏幕上, 根据提示将这两段内容复制到对应的文件中(去掉注释#)
+
+				然后就可以验证rndc是否可以正常使用了
+				# rndc status
+
+	前次博客作业附加: 子域授权和view
+
+回顾: dns
+
+	bind: 53/udp, 53/tcp
+	named, named:named
+		1023
+	服务脚本: /etc/rc.d/init.d/named
+	配置文件: /etc/named.conf, /etc/rndc.conf
+	测试工具: dig, host, nslookup
+
+	角色:
+		缓存服务器(缓存服务器一般都要允许可以递归才能被别人指向你这里,否则就没有缓存服务器的意义了)
+		主DNS服务器
+		从DNS服务器
+		转发服务器
+
+		zone "ZONE_NAME" in {
+			type {hint|master|slave|forward};
+			...
+		};
+
+	资源记录:
+		SOA, NS, MX, CNAME
+		A, AAAA, PTR
+
+	view: 
+
+	博客作业: 主从, 子域授权, view
+
+OpenSSH:
+
+	ssh: secure shell, protocol, 22/tcp, 安全的远程登录功能
+	OpenSSH: ssh协议的开源实现
+		dropbear: 另一个开源实现(通常用在嵌入式环境中)
+	
+	SSH协议版本
+		v1: 基于CRC-32做MAC,不安全, man-in-middle会破解它
+		v2: 双方主机协议选择安全的MAC方式
+			基于DH算法做密钥交换, 基于RSA或DSA算法实现身份认证
+
+		两种方式的用户登录认证:
+			基于password
+			基于key
+
+	OpenSSH:
+		C/S
+			C: ssh, scp, sftp
+				Windows客户端:
+					xshell, putty, secureCRT, sshsecureshellclient
+			S: sshd
+
+		客户端组件:
+			ssh, 配置文件: /etc/ssh/ssh_config
+
+			格式: 
+				ssh [user@]hostname [COMMAND]
+				ssh [-l user] host [COMMAND]
+					-p port: 远程服务器监听的端口
+					-X: 支持x11转发, x是协议,11是版本号.
+					-Y: 支持信任的x11转发
+
+				# ssh root@192.168.4.125 'hostname' //192.168.4.125上执行hostname命令
+				
+				配置文件中的内容
+				HOST PATTERN
+					PARAMETER VALUE
+				
+				基于密钥的认证:
+					(1) 在客户端生成密钥对儿
+						ssh-keygen -t rsa [-P ''] [-f "/root/.ssh/id_rsa"]
+							-t: 加密类型
+							-P: 是否需要密码
+							-f: 生成密钥文件的路径
+
+							[root@localhost .ssh]# ssh-keygen -t rsa -P '' -f "/root/.ssh/id_rsa"
+
+					(2) 把公钥传输至远程服务器对应用户的家目录
+						ssh-copy-id [-i [identity_file]] [user@]machine
+							-i: 指明公钥文件所在的位置
+
+							[root@localhost .ssh]# ssh-copy-id -i ~/.ssh/id_rsa.pub root@192.168.4.125
+							root@192.168.4.125's password: 
+							Now try logging into the machine, with "ssh 'root@192.168.4.125'", and check in:
+
+							.ssh/authorized_keys
+
+							to make sure we haven't added extra keys that you weren't expecting.
+
+						其实也可以不使用ssh-copy-id命令, 只需要手动去修改(如果没有就创建)服务器上的对应目录下的这个authorized_keys文件,
+						请确保这个authorized_keys文件的权限600,
+						把你自己的公钥id_rsa.pub中的内容追加到authorized_keys文件中就可以了.
+					(3) 测试, 应该就可以不需要密码就能直接登录
+
+					注意: 真实环境中,切记不可直接使用root用户生成密钥认证,应该使用普通的用户来生成这个密钥认证,需要管理员的时候再从普通用户切换为管理员.
+					否则一旦以这个密钥丢失了,而且还是可以root免密码登录你的服务器,就gg了.
+				
+			scp命令: 有两种工作模式, pull和push
+				scp [options] SRC... DEST/
+
+				存在两种情形:
+					PULL: scp [options] [user@]host:/PATH/FROM/SOMEFILE   /PATH/TO/SOMEWHERE
+					PUSH: scp [options] /PATH/FROM/SOMEFILE   [user@]host:/PATH/TO/SOMEWHERE
+
+						常用选项:
+							-r: 递归复制
+							-p: 保持源文件的属性信息(权限,时间戳等等)
+							-q: 静默模式
+							-P PORT: 指明remote host的监听的端口
+
+			sftp命令:
+				sftp [user@]host
+				sftp> help 
+		
+		服务器端:
+			sshd, 配置文件: /etc/ssh/sshd_config
+
+			常用参数:
+				Port 2022				//端口
+				AddressFamily any 		//使用ipv4还是ipv6或者同时都用
+				ListenAddress 0.0.0.0	//0.0.0.0表示监听本机所有的ipv4地址
+				ListenAddress ::		//::表示监听本机所有的ipv6地址
+				UseDNS no				//当有client请求时,是否反向DNS解析客户端的ip. 
+										//这个选项可以设置为no,因为有的时候这个反向解析的过程时间很长(几秒到分钟级别).用户ssh登录的时候会卡住
+				PermitRootLogin yes		//限制是否允许root用户ssh登录
+				限制可登录用户的办法:
+					AllowUsers user1 user2 user3			
+					AllowGroups
+	
+	ssh服务的最佳实践:
+		1. 不要使用默认端口
+		2. 禁止使用protocol version 1
+		3. 限制可登录用户
+		4. 设定空闲会话超时时长
+		5. 利用防火墙设置ssh访问策略
+		6. 仅监听特定的IP地址
+		7. 基于口令认证时, 使用强密码策略
+			可以尝试使用随机出来的密码
+			[root@localhost ~]# tr -dc A-Za-z0-9_ < /dev/urandom | head -c 30 | xargs
+			Coi3dlxU7zZm6CSg1qYhfEdIc1JB7y
+			[root@localhost ~]#
+		8. 使用基于密钥的认证
+		9. 禁止使用空密码
+		10. 禁止root用户直接登录
+		11. 限制ssh的访问频度和通并发在线数量
+		12. 做好日志, 经常分析
+
+	ssh协议的另一个实现:dropbear, 这个软件使用的资源比较少,可以使用再嵌入式环境中
+		服务程序: dropbear ==> sshd
+		客户程序: dbclient ==> ssh
+		密钥生成程序: dropbearkey
+
+		编译安装: 
+			# ./configure --prefix=/usr/local/dropbear --sysconfdir=/etc/dropbear --disable-pam
+			# make PROGRAMS="dropbear dbclient dropbearkey dropbearconvert scp"
+			# make PROGRAMS="dropbear dbclient dropbearkey dropbearconvert scp" install
+
+
+		(1) # dropbearkey -t rsa -f /etc/dropbear/dropbear_rsa_host_key -s 2048
+			# dropbearkey -t dss -f /etc/dropbear/dropbear_dss_host_key
+			# dropbear -p [ip:]port -F -E
+
+OpenSSL:
+	三个组件:
+		openssl: 多用途的命令行工具
+		libcrypto: 加密解密库
+		libssl: ssl协议的实现
+	
+	PKI: Public Key Infrastructure
+		CA: 证书颁发机构
+		RA: 证书注册机构
+		CRL: 证书吊销列表
+		证书存取库
+
+	建立私有CA:
+		OpenCA
+		openssl
+
+	证书申请及签署步骤:
+		1. 生成申请请求:
+		2. RA核验
+		3. CA签署
+		4. 获取证书	
+
+	创建私有CA:
+		openssl的配置文件: /etc/pki/tls/openssl.cnf
+
+		(1) 创建所需要的文件
+			# touch index.txt
+			# echo 01 > serial
+		(2) CA自己给自己签发证书
+			# (umask 077; openssl genrsa -out /etc/pki/CA/private/cakey.pem 2048)
+			# openssl req -new -x509 -key /etc/pki/CA/private/cakey.pem -days 7300 -out /etc/pki/CA/cacert.pem
+				-new: 生成新证书签署请求
+				-x509: 生成自签证书
+				-key: 生成请求时用到的私钥文件
+				-days n: 证书的有效期限
+				-out /PATH/TO/SOMECERTFILE: 证书的保存路径
+		(3) 发证
+			(a) 用到证书的主机(客户端)生成证书请求
+				# (umask 077; openssl genrsa -out /etc/httpd/ssl/httpd.key 2048)	
+				# openssl req -new /etc/httpd/ssl/httpd.key -days 365 -out /etc/httpd/ssl/httpd.csr
+			(b) 把请求文件传输给CA服务器
+				# scp /etc/httpd/ssl/httpd.csr root@192.168.4.125:/tmp/
+			(c) (服务端)签署证书,并将证书发还给客户端
+				# openssl ca -in /tmp/httpd.csr -out /etc/pki/CA/certs/httpd.crt -days 365
+
+				查看证书中的信息:
+					# openssl x509 -in /PATH/FROM/CERT_FILE -noout -text 
+					//除了 -text选项之外也可以使用 -subject | -serial 查看证书信息
+		(4) 吊销证书:
+			(a) 客户端获取要吊销的证书的serial(这一步在客户端进行)
+				# openssl x509 -in /PATH/FROM/CERT_FILE -noout -serial -subject
+			(b) CA(服务端)
+				先根据客户端提交的serial与subject信息,对比检验是否与index.txt文件中的信息一致:
+
+				吊销证书:
+					# openssl ca -revoke /etc/pki/CA/newcerts/SERIAL.pem
+			(c) 生成吊销证书的编号(第一次吊销某证书时才需要这一步,即初始化这个crlnumber文件, 有了这个文件之后再吊销证书就不用这一步了):
+				# echo 01 > /etc/pki/CA/crlnumber 
+			(d) 更新证书吊销列表
+				# openssl ca -gencrl -out thisca.crl
+
+				查看crl文件:
+					# openssl crl -in /PATH/FROM/CRL_FILE.crl -noout -text
+				
+博客作业: 加密解密基础, PKI及SSL, 穿件私有CA
+		
+回顾:
+	OpenSSH (SSH), dropbear
+		Server: sshd, dropbear
+		Client:
+			Linux: ssh, dbclient
+			Windows: xshell, putty, securecrt
+
+			工具程序: scp, sftp
+		
+		sshd: /etc/ssh/sshd_config
+			AllowUsers, AllowGroups, DenyUsers, DenyGrouops, Port, Protocol
+			获取帮助: man sshd_config
+		ssh: /etc/ssh/ssh_config
+			获取帮助: man ssh_config
+
+Web Service
+	传输层: 提供进程地址
+		Port number:
+			tcp: 传输控制协议, 面向连接的协议: 所谓面向连接就是指, 通信前需要建立虚拟链路, 结束后拆除链路
+				0-65535
+			udp: User Datagram Protocol, 无连接的协议
+				0-65535
+
+		IANA:
+			0~1023: 众所周知,永久的分配给固定过的应用时候, 22/tcp(ssh), 80/tcp(http), 443/tcp(https)
+			1024~41951: 亦为注册端口,但是要求并不是特别严格,分配给程序注册为某应用使用, 11211/tcp, 11211/udp (memcached), 3306/tcp(mysql)
+			41952之后的端口: 客户端程序随机使用的端口, 这些端口被称作动态端口或者私有端口. 其范围的定义: /proc/sys/net/ipv4/ip_local_port_range
+	
+	Socket: IPC的一种实现, 允许位于不同主机上(甚至是统一主机)上不同进程之间进行通信, 数据交换： Socket API, 1983年, 4.2 BSD
+		SOCK_STREAM: tcp套接字
+		SOCK_DGRAM: udp套接字
+		SOCK_RAW: 裸套接字
+
+		IPv4:
+			分类:
+				A: 1~127
+				B: 128~191
+				C: 192~223
+				D: 组播, 224~239
+				E: 240~254
+			私有地址
+				A: 10.0.0.0/8
+				B: 172.16.0.0/16~172.31.0.0/16
+				C: 192.168.0.0/24~192.168.255.0/24
+
+		TCP协议的特性:
+			建立连接: 三次握手
+			将数据打包成段: 校验和(CRC-32)
+			确认,重传以及超时
+			排序: 逻辑序号
+			流量控制: 滑动窗口算法
+			拥塞控制: 慢启动个拥塞避免算法
+
+		Socket Doamin(根据其所使用的地址):
+			AF_INET: Address Family, IPv4
+			AF_INET6: IPv6
+			AF_UNIX: 同一主机上的不同进程间通信时使用
+
+			每类套接字都至少提供了两种socket: 流,数据报
+				流: 可靠地传递,面向连接,无边界
+				数据报: 不可靠地传递,有边界,无连接
+
+		套接字相关的系统调用:
+			socket(): 创建一个套接字
+			bind(): 绑定
+			listen(): 监听
+			accept(): 接受请求
+			connect(): 请求建立连接
+			write(): 发送
+			read(): 接收
+				send(), recv(), sendto(), recvfrom()
+			
+	http: hyper text transfer protocol
+		html:
+		CSS:
+		js:
+
+		MIME: Multipurpose Internet Mail Extension 基于文本传输协议发送非文本数据
+
+		工作机制:
+			http请求
+			http响应
+		
+		Web资源: web resource
+			静态文件: .jpg, .gif, .html, .txt, .js, .css, .mp3, .avi
+			动态文件: .php, .jsp
+
+			媒体:
+				媒体类型(MIME类型): major/minor  主类型/次类型
+					text/html
+					text/plain
+					image/jpeg
+					image/gif
+		
+		URI: Uniform Resource Identifier
+			URL: Uniform Resource Locator
+				Scheme://Server:Port/path/toresource	
+					http://www.magedu.com/images/logo.jpg
+
+			URN: Uniform Resource Naming
+		
+		http协议版本:
+			HTTP/0.9: 原型版本, 功能简陋
+			HTTP/1.0: 第一个广泛使用的版本, 支持MIME
+			HTTP/1.1: 增强了缓存功能
+			spdy
+			HTTP/2.0: 
+
+			rfc
+	
+	一次完整的http请求过程: 
+		(1) 建立或处理连接: 接收请求或拒绝请求
+		(2) 接收请求:
+			接收来自于网络的请求报文中对某资源的一次请求的过程
+
+			并发访问响应模型(Web I/O):
+				单进程I/O结构: 启动一个进程处理用户请求, 而且一次只处理一个, 多个请求被串行响应
+				多进程I/O结构: 并行启动多个进程, 每个进程相应一个请求
+				复用I/O结构: 一个进程相应n个请求
+					多线程模型: 一个进程生成N个线程, 每个线程响应一个用户请求
+					时间驱动: event-driven
+				复用的多进程I/O结构: 启动多个(m)进程, 每个进程相应n个请求
+					响应的请求数量: m*n
+		(3) 处理请求: 对请求报文进行解析, 并获取请求的资源及请求方法等相关信息
+			元数据: 请求报文首部
+				<method> <URL> <VERSION>
+				Host: www.magedu.com	请求的主机名称
+				Connection:
+		(4) 访问资源: 获取请求报文中请求的资源
+			web服务器, 即存放了web资源的服务器, 负责向请求者提供对方请求的静态资源, 或动态运行后生成的资源. 
+			这些资源放置于本地文件系统某路径下, 此路径通常成为DocRoot
+
+			/var/www/html/
+				images/1.jpg
+			http:// www.magedu.com/images/1.jpg
+
+			web服务器资源路径映射方式:
+				(a) docroot
+				(b) alias
+				(c) 虚拟主机docroot
+				(d) 用户家目录docroot
+
+		(5) 构建响应报文
+			资源的MIME类型:
+				显示分类
+				魔法分类
+				协商分类
+
+			URL重定向:
+				web服务器构建的响应并非客户端请求的资源,而是资源另外一个访问路径
+
+		(6) 发送响应报文
+		(7) 记录日志
+
+	http服务器程序:
+		httpd (apache)
+		nginx
+		lighttpd
+
+		应用程序服务器:
+			IIS
+			tomcat, jetty, jboss, resin
+			websphere, weblogic, oc4j
+		
+		www.netcraft.com (统计互联网上的网站使用的是什么服务器)
+
+	httpd的安装配置和使用：
+		httpd: apache
+			a pachy server = apache
+			ASF: apache software foundation
+	
+	httpd的特性:
+		高度模块化: core + modules
+		DSO: Dynamic Share Object
+		MPM: Multi-Processing Modules
+			prefork: 多进程模型, 每个进程相应一个请求
+				一个主进程: 负责生成n个子进程, 子进程也成为工作进程, 每个子进程处理一个用户请求. 
+				即便没有用户请求,也会预先生成多个空闲进程,随时等待请求到达(空闲进程最大不会超过1024个)
+			worker: 多进程多线程模型, 每个线程处理一个用户请求
+				一个主进程: 负责生成子进程; 负责创建套接字; 负责接受请求,并将其派发给某子进程进行处理;
+				多个子进程: 每个子进程负责生成多个线程;
+				每个线程: 负责响应用户请求;
+				并发响应数量: m*n
+					m: 子进程数量
+					n: 每个子进程所能创建的最大线程数量
+			event: 时间驱动模型, 多进程模型, 每个进程相应多个请求;
+				一个主进程: 负责生成子进程; 负责创建套接字; 负责接受请求, 并将其派发给子进程进行处理;
+				子进程: 基于时间驱动机制直接相应多个请求;
+
+				httpd-2.2: 仍为测试使用模型
+				httpd-2.4: event可以在生产环境中使用了
+
+	httpd的程序版本:
+		httpd 1.3: 官方已经停止维护
+		httpd 2.0:
+		httpd 2.2:
+		httpd 2.4: 目前最新稳定版本
+	
+	httpd的功能特性:
+		CGI: Common Gateway Interface
+		虚拟主机: IP, PORT, FQDN
+		反向代理
+		负载均衡
+		路径别名
+		丰富的用户认证机制
+			basic
+			digest
+		支持第三方模块
+		...
+
+=============================================	
+	59,62~69
+=============================================	
+
+
+回顾:
+	MPM: 
+		prefork: 多进程模型, 一个进程响应一个请求
+		worker: 多线程模型(多进程生成,一个进程生成多个线程), 一个线程响应一个请求
+		event: 事件驱动模型, 一个线程响应多个请求
+	
+	并发服务器响应请求:
+		单进程I/O模型:
+		多进程I/O模型:
+		复用的I/O模型:
+			多线程模型
+			事件驱动
+		利用的多进程I/O模型
+
+httpd(2)
+
+	centOS 6: 2.2
+	centOS 7: 2.4
+
+	安装方式:
+		rpm
+		编译源码
+
+	CentOS 6:
+		程序环境:
+			配置文件: 
+				/etc/httpd/conf/httpd.conf
+				/etc/httpd/conf.d/*.conf
+			服务脚本
+				/etc/rc.d/init.d/httpd
+				脚本的配置文件: /etc/sysconfig/httpd
+			主程序文件:
+				/usr/sbin/httpd
+				/usr/sbin/httpd.event
+				/usr/sbin/httpd.worker
+			日志文件目录:
+				/var/log/httpd
+					access_log: 访问日志
+					error_log: 错误日志
+			站点文档目录：
+				/var/www/html
+			模块文件路径:
+				/usr/lib64/httpd/modules
+
+			配置文件的组成:
+				[root@localhost ssl]# grep "Section" /etc/httpd/conf/httpd.conf 
+				### Section 1: Global Environment
+				### Section 2: 'Main' server configuration
+				### Section 3: Virtual Hosts
+
+				配置格式: directive value
+					directive: 不区分大小写
+					value: 为路径时,取决于文件系统
+		常用配置:
+			前提: 确保你的selinux关闭, iptables关闭(等我们学习了iptables后再有目的的开启iptables)
+			注意: 修改配置文件有的时候只需要重新加载配置文件(service httpd reload)而不是重新启动服务,但是对于监听端口的改变是一定要重启服务的。
+				在重启服务或者重新加载配置文件之前,应该做语法检查:
+					# service httpd configtest 或者使用 # httpd -t
+
+			1. 修改监听的IP和Port
+				Listen [IP:]PORT
+				(1) 省略IP表示监听本机所有IP地址(有的机器有多块网卡,相应的有多个地址)
+				(2) Listen指令可以使用多次
+
+			2. 持久连接
+				Persistent Connection: 连接建立, 每个资源获取完成后不会断开连接,而是继续等待其他的请求完成
+					如何(何时)断开?
+						数量限制: 100
+						时间限制: 可配置, 秒级别
+					副作用: 对并发访问量较大的服务器, 持久连接功能会使得有些请求得不到响应.
+					折中方案: 使用较短的持久连接时间
+						httpd-2.4 支持毫秒级持久时间的配置
+				非持久连接:
+
+				KeepAlive On|Off
+				MaxKeepAliveRequests #
+				KeepAliveTimeout #
+
+				测试: 
+					# telnet HOST PORT
+					GET /URL HTTP/1.1
+					Host: HOSTNAME or IP
+			
+			3.MPM
+				Multipath Process Module: 多路处理模块
+					prefork, worker, event
+
+				httpd-2.2不支持同时编译多个模块,所以只能编译时选定一个: rpm安装的包提供了3个二进制程序文件(http,http.worker,httpd.event), 
+				分别用于实现对不同MPM机制的支持. 在httpd2.2中 event模块还不是很稳定,所以配置较少
+
+				查看当先使用的是哪种模块:
+					[root@localhost conf]# ps aux | grep httpd
+					看是httpd还是httpd.worker,或者httpd.event
+
+				默认为/usr/sbin/httpd, 其使用prefork
+					查看模块列表: 
+						查看静态编辑的模块:httpd -l (如果你用的是worker模块, httpd.worker -l, 同理 httpd.event -l)
+							[root@localhost conf]#  httpd -l
+							Compiled in modules:
+							core.c
+							prefork.c
+							http_core.c
+							mod_so.c
+						查看静态编译及动态装载的模块
+							# httpd -M
+
+						httpd -h 可以查看帮助
+				
+				更换使用的httpd(模块)程序:
+					修改配置文件 /etc/sysconfig/httpd中HTTPD=xxxx
+						HTTPD=/usr/sbin/httpd.worker
+						重启服务生效
+
+
+				prefork的配置
+					<IfModule prefork.c>
+					StartServers       8			//number of server processes to start
+					MinSpareServers    5			//minimum number of server processes which are kept spare
+					MaxSpareServers    2			//maximum number of server processes which are kept spare
+					ServerLimit      256			//maximum value for MaxClients for the lifetime of the server
+					MaxClients       256			//maximum number of server processes allowed to start
+					MaxRequestsPerChild  4000		//maximum number of requests a server process serves
+					</IfModule>
+
+				worker的配置
+					<IfModule worker.c>
+					StartServers         4			//initial number of server processes to start
+					MaxClients         300			//maximum number of simultaneous client connections
+					MinSpareThreads     25			//minimum number of worker threads which are kept spare
+					MaxSpareThreads     75			//maximum number of worker threads which are kept spare
+					ThreadsPerChild     25			//constant number of worker threads in each server process
+					MaxRequestsPerChild  0			//maximum number of requests a server process serves, 0表示不做限制
+					</IfModule>
+
+				PV, UV
+					PV: Page View
+					UV: User View
+						独立IP量
+
+			4. DSO(Dynamic Shared Object)
+				配置指令实现模块加载
+					LoadModule <mod_name> <mod_path>
+
+					注意:模块路径可使用相对路径
+							相对于ServerRoot(在配置文件中这个目录默认指定的是/etc/httpd)指向的路径而言:
+								/etc/httpd/modules/
+
+			5. 定义'Main' server的文档页面路径
+				DocumentRoot
+
+				文档路径映射:
+					DocumentRoot指向的路径为URL路径的其实位置
+						DocumentRoot "/var/www/html"
+							test/index.html -->	http://HOST:PORT/test/index.html
+
+			6. 站点访问控制
+				可基于两种该类型的路径指明对哪些资源进行访问控制
+					文件系统路径:
+						<Directory ""> </Directory>
+						<File ""> </File>
+						<FileMatch "正则"> </FileMatch>		//不推荐,因为正则需要调用正则引擎,会拖慢效率
+					URL路径:
+						<Location ""> </Location>
+						<LocationMatch ""> </LocationMatch>
+					
+				访问控制机制:
+					基于来源地址:
+					基于账号:
+			
+			7. Directory中"基于来源地址"实现访问控制
+				(1) Options: None | All | 或者下面可用特性的组合
+					所有可用特性:	Indexes Includes FollowSymLinks SymLinksifOwnerMatch ExecCGI MultiViews
+									None, All
+						Indexes: 索引. 当一个Directory下面找不到定义的默认主页面,那么会以列表的形式显示这个Directory下面的所有文件. 
+						这个特性有一点危险,因为如果你可能会暴露你这个Directory下面的所有代码. 但是这个特性在做下载页面时很有效,
+						因为可以显示出来所有能被下载的文件的列表,让用户自己选择下载想要的文件.
+						FollowSymlinks: 允许跟踪符号链接文件,也就是如果Directory下面有链接文件,允许访问链接文件所指向的源文件. 也是一个有风险的特性.
+						SymLinksifOwnerMatch: 只有属主相同时,才允许访问
+						ExecCGI: 允许执行CGI脚本.	风险选项
+						MultiViews: 允许多视图, 可以根据请求的一些特性返回相应的视图(例如: i18n, 根据语言返回对应的页面).风险选项
+
+				(2) 基于来源地址的访问控制机制
+					Order: 检查次序
+						Order allow,deny	//默认都不允许,只有显示allow(比如:白名单)的才允许
+						Order deny,allow	//默认都允许,只有显示deny(比如:黑名单)的才拒绝
+					Allow from
+					Deny from
+
+					来源地址:
+						IP:
+						NetAddr:网络地址
+							172.16
+							172.16.0.0
+							172.16.0.0/16
+							172.16.0.0/255.255.0.0
+
+				(3) AllowOverride: None | ALL | 或者下面的特性组合
+					特性: FileInfo AuthConfig Limit
+						httpd2.2 支持在Directory下面的每个子目录建立一个.htaccess的文件来单独定义这个子目录的访问控制.
+						这个选项就是设定是否允许覆盖那些.htaccess中定义的控制.
+						一般都会使用None, 因为这个子目录的访问控制虽然更灵活,但对于性能的影响非常大.所以默认都不开启
+
+			
+			8. 定义默认主页面
+				DirectoryIndex: index.html index.html.var
+			
+			9. 日志设定
+				错误日志: 
+					ErrorLog logs/error_log				//日志的存放位置,同样这里的相对路径是相对于ServerRoot所指定的路径而言的.	
+					LogLevel warn						//日志级别
+						debug, info, notice, warn, error, crit, alert, emerg
+
+				访问日志:
+					CustomLog logs/access_log combined	//combined是日志的格式名称, 用LogFormat指定的
+					LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+						%h: 客户端IP地址
+						%l: Remote logname (from identd, if supplied). -表示为空
+						%u:	Remote user (from auth; may be bogus if return status (%s) is 401). -表示为空
+						%t: Time the request was received (standard english format). 服务器收到请求的时间
+						%r: First line of request. 请求报文的首行信息(method url version)
+						%>s: 响应状态码. 
+						%b: 响应报文的大小,单位是字节.不包含响应报文的首部
+						%{Referer}i: 请求报文当中"referer"首部的值: 当前资源的访问入口,即从哪个页面中的超链接跳转而来
+						%{User-Agent}i: 请求报文当中"User-Agent"首部的值: 即发出请求用到的应用程序
+
+					详情:这些日志格式format string的定义: https://httpd.apache.org/docs/2.2/mod/mod_log_config.html#formats
+					
+			10. 路径别名
+
+				DocumentRoot "/www/htocs"
+					http://www.magedu.com/download/bash-4.4.2-3.el6.x86_64.rpm
+						--> /www/htocs/download/bash-4.4.2-3.el6.x86_64.rpm
+				
+				Alias /URL/ "/PATH/TO/SOMEDIR/"
+
+					Alias /bbs/	"/forum/htdocs"
+						http://www.magedu.com/bbs/index.html
+							--> /forum/htdocs/bbs/
+			
+			11. 设定默认字符集
+				AddDefaultCharset UTF-8
+
+				GBK, GB2312, GB18030
+
+			12. 基于用户的访问控制
+
+				认证质询:
+					WWW-Authenticate: 响应码为401, 拒绝客户端请求,并说明要求客户端提供账号和密码
+				认证: (这个认证是http自己的认证, 不是form表单的验证)
+					Authorization: 客户端用户填入账号和密码后再次发送请求报文, 认证通过, 则服务器发送响应的资源
+
+					认证类型:
+						basic: 明文
+						digest: 消息摘要
+				
+				安全域: 需要用户认证后方能访问的路径:
+					应该通过名称对其进行标识,并用于告知用户认证的原因.
+				
+				用户的账号和密码存储于何处?
+					虚拟账号: 仅用于访问某服务时用到的认证标识
+
+					存储:
+						文本文件
+						SQL数据库
+						ldap
+						nis
+
+				basic认证:
+					(1) 定义安全域
+						<Directory ""> 
+							Options None
+							AllowOverride None
+							AuthType Basic
+							AuthName "STRING"
+							AuthUserFile "/PATH/TO/HTTPD_USER_PASSWD_FILE"
+							Require user username1 username2 ...
+						</Directory>
+
+						允许账号文件中的所有用户登录访问:
+							Require valid-user
+						例如:
+							<Direcotry "/www/htdocs/admin">
+								Options None
+								AllowOverride None
+								AuthType Basic
+								AuthName "Administrator private ft1284595"
+								AuthUserFile "/etc/httpd/conf.d/.htpasswd"
+								Require user tom
+								//Require valid-user
+							</Directory>
+					(2) 提供账号和密码存储(我们这次使用文本文件)
+						使用htpasswd命令进行管理
+							htpasswd [options] passwordfile username
+								-c: 自动创建passwordfile,因此,仅应该在添加第一个用户时使用(否则就会覆盖掉前面的用户)
+								-m: md5加密用户密码
+								-s: sha1加密用户密码
+								-D: 删除指定用户
+
+					(3) 实现基于组进行认证
+							<Direcotry "/www/htdocs/admin">
+								Options None
+								AllowOverride None
+								AuthType Basic
+								AuthName "Administrator private ft1284595"
+								AuthUserFile "/etc/httpd/conf.d/.htpasswd"
+								AuthGroupFile ""
+								Require group GROUP1 GROUP2 ...
+							</Directory>
+
+							要提供: 用户账号文件和组文件
+								自己创建组文件: 每一行定义一个组
+									GRP_NAME: user1 user2 user3 ...
+
+							示例:
+							<Direcotry "/www/htdocs/admin">
+								Options None
+								AllowOverride None
+								AuthType Basic
+								AuthName "Administrator private ft1284595"
+								AuthUserFile "/etc/httpd/conf.d/.htpasswd"
+								AuthGroupFile "/etc/httpd/conf.d/.htgroup"
+								Require group webadmin
+							</Directory>
+				
+			13. 虚拟主机
+
+				有3种实现方案:
+					基于ip: 
+						为每个虚拟主机准备至少一个ip地址, 也很少用,因为ip地址难记,而且ip地址本身也是要付费的
+					基于port:
+						为每个虚拟主机准备至少一个专用的port, 实践中很少使用, web的端口默认就是80,你改成别的端口,人家也不知道你会用哪个端口.
+					基于hostname:
+						为每个虚拟主机准备至少一个专用hostname, 最常用
+						需要将NameVirtualHost *:80开启(这里定义的内容和virtualhost中定义的要匹配),(httpd2.4就不用这一步了)
+					可以混合使用上述三种方式中的任意方式
+				
+				注意: 一般虚拟主机不要和中心主机(Main Server)混用,所以,要使用虚拟主机,最好先禁用中心主机(有的时候,不禁用也可以)
+					禁用Main Server: 注释DocumentRoot
+				
+				每个虚拟主机都有专用配置: 大多数Main Server的配置都可以被虚拟主机使用
+					<VirtualHost "IP:PORT">
+						//下面2项是最重要的配置
+						ServerName
+						DocumentRoot ""
+						//除了上面的配置还可以配置其他的option,比如日志等
+					</VirtualHost>
+
+						ServerAlias: 虚拟主机的别名
+						ErrorLog:
+						CustomLog:
+						<Directory "">
+						</Directory>
+						<Location "">
+						</Location>
+				
+				示例1: 基于IP
+					<VirtualHost 192.168.4.98:80>
+						ServerName web1.magedu.com
+						DocumentRoot "/vhosts/web1/htdocs"
+					</VirtualHost>
+
+					<VirtualHost 192.168.4.230:80>
+						ServerName web2.magedu.com
+						DocumentRoot "/vhosts/web2/htdocs"
+					</VirtualHost>
+
+				示例2: 基于port
+					<VirtualHost 192.168.4.230:80>
+						ServerName web2.magedu.com
+						DocumentRoot "/vhosts/web2/htdocs"
+					</VirtualHost>
+
+					<VirtualHost 192.168.4.230:8080>
+						ServerName web3.magedu.com
+						DocumentRoot "/vhosts/web3/htdocs"
+					</VirtualHost>
+					Listen 80
+					Listen 192.168.4.230:8080
+
+				示例3： 基于hostname
+					NameVirtualHost 192.168.4.98:80
+					<VirtualHost 192.168.4.98:80>
+						ServerName web1.magedu.com
+						DocumentRoot "/vhosts/web1/htdocs"
+					</VirtualHost>
+
+					<VirtualHost 192.168.4.98:80>
+						ServerName web2.magedu.com
+						DocumentRoot "/vhosts/web2/htdocs"
+					</VirtualHost>
+
+					<VirtualHost 192.168.4.98:80>
+						ServerName web3.magedu.com
+						DocumentRoot "/vhosts/web3/htdocs"
+					</VirtualHost>
+
+			14. 内置的status页面
+				<Location /server-status>
+					SetHandler server-status
+					Order deny,allow
+					Deny from all
+					Allow from 192.168
+					#Allow from .example.com
+				</Location>
+
+				开启这个配置之后就可以通过web查看server的状态
+					http://192.168.4.98/server-status
+
+				还可以通过开启ExtendedStatus On来显示更详细的status信息
+
+				实现: 基于账号实现访问控制	
+			
+
+
+
+
+回顾:
+	httpd的配置:
+		Listen [IP:]PORT
+		KeepAlived {On|Off}
+		MPM(Multi-Processing Module):
+			prefork,worker,event
+		DSO:
+			LoadModule
+			httpd -M
+		DocumentRoot
+		<Directory>
+			Options Indexs FollowSymLinks
+			Order
+			Allow from
+			Deny from
+		</Directory>
+		<Location>
+
+		DirectoryIndex
+		ErrorLog
+		CustomLog
+		LogFormat
+			%{Referer}i: 引用Referer首部的值
+		Alias /URL/ "/path/to/somedir/"
+		基于用户访问控制:
+			认证方式: basic, digest
+				AuthType Basic
+				AuthName ""
+				AuthUserFile
+				AuthGroupFile
+				Require user
+				Require group
+				Require valid-user
+			
+			.htpasswd:
+				htpasswd
+					选项: -c -m -D
+		虚拟主机:	IP, Port,FQDN(hostname)
+	
+http协议和httpd的配置
+
+	URL: Uniform Resource Locator
+		URL方案: scheme
+		服务器地址: ip:port
+		资源路径:
+
+		http://www.magedu.com:80/bbs/index.php
+		https://
+
+		基本语法:
+			<scheme>://<use>:<password>@<host>:<port>/<path>;<params>?<query>#<frag>
+				params: 参数
+					http://www.mgedu.com/bbs/hello;gender=f
+				query:
+					http://www.magedu.com/bbs/item.php?username=tom&title=abc
+				#frag是锚点
+		
+		相对URL
+		绝对URL
+
+	http协议:
+		http/0.9, http/1.0, http/1.1, http/2.0
+
+		http协议: stateless
+			服务器无法持续追踪访问者来源
+			cookie, session
+		
+		http事务:
+			请求: request
+			响应: response
+
+			报文语法格式:
+				request报文
+					<method> <request-URL> <version>
+					<headers>
+
+					<entity-body>
+				response报文
+					<version> <status> <reason-phrase>
+					<headers>
+
+					<entity-body>
+				
+				method: 请求方法,表明客户端希望服务器对资源执行的动作
+					GET,HEAD,POST
+				version:
+					HTTP/<major>.<minor>
+				status:
+					三位数字, 如200, 301, 302, 404, 502; 标记请求处理过程中发生的情况
+				reason-phrase:
+					状态码所标记的状态的简要描述
+				headers:
+					每个请求或响应报文可包含任意个首部,每个首部都有首部名称, 后面跟一个冒号(:),而后跟上一个可选的空格,接着是一个值.
+				entity-body: 
+					请求时附加的数据或响应时附加的数据
+			
+			method(方法):
+				GET: 从服务器获取一个资源
+				HEAD: 只从服务器获取文档的响应首部
+				POST: 向服务器发送要处理的数据
+				PUT: 将请求的主体部分存储在服务器上
+				DELETE: 请求删除服务器上指定的文档
+				TRACE: 追踪请求到达服务器中间经过的代理服务器
+				OPTIONS: 请求服务器返回对指定资源支持使用的请求方法.
+
+				协议查看和分析工具:
+					tcpdump, tshark, wireshark
+
+			status(状态码):
+				1xx: 100-101, 信息提示
+				2xx: 200-206, 成功
+				3xx: 300-305, 重定向
+				4xx: 400-415, 错误类信息, 客户端错误
+				5xx: 500-505, 错误类信息, 服务器端错误
+			
+				常用的状态码:
+					200: 成功, 请求的所有数据通过响应报文的entity-body部分发送: OK
+					301: 请求的URL指向的资源已经被删除,但在响应报文中通过首部Location指明了资源现在所处的新位置: Moved Permanently
+					302: 与301相似,但在响应报文中通过Location指明资源现在所处的临时新位置; Found
+					304: 客户端发出了条件式请求, 但服务器上的资源未曾发生改变, 则通过响应状态码通知客户端: Not Modified
+					401: 需要输入账号和密码认证方能访问资源: Unauthorized
+					403: 请求被禁止: Forbidden
+					404: 服务器无法找到客户端请求的资源: Not Found
+					500: 服务器内部错误: Internal Server Error
+					502: 代理服务器从后端服务器收到了一条伪响应: Bad Gateway
+			
+			headers: 
+				格式:
+					Name: Value
+			
+				首部的分类:
+					通用首部
+					请求首部
+					响应首部
+					实体首部
+					扩展首部
+
+					通用首部:
+						Date: 报文的创建时间
+						Connection: 连接方式, 如keep-alive, close
+						Via: 显示报文经过的中间节点
+						Cache-Control: 控制缓存
+						Pragma:
+					
+					请求首部:
+						Accept: 通过服务器自己可接受的媒体类型
+						Accpet-Charset: 
+						Accept-Encoding: 接受编码格式, 如gzip
+						Accept-Language: 接受的语言
+					
+						Client-IP:
+						Host: 请求的服务器名称和端口号
+						Referer: 包含了当前正在请求的资源的上一级资源
+						User-Agent: 客户端代理
+
+						条件式请求首部:
+							Expect:
+							If-Modified-Since: 自从指定的时间之后,请求的资源是否发生过修改
+							If-Unmodified-Since: 
+							If-None-Match: 本地缓存中存储的文档的ETag标签是否与服务器文档的Etag不匹配
+							If-Match: 
+
+						安全请求首部:
+							Authorization: 向服务器发送认证信息,如账号和密码
+							Cookie: 客户端向服务器发送cookie
+							Cookie2: 第2版cookie
+
+						代理请求首部:
+							Proxy-Authorization: 向代理服务器认证
+					
+					响应首部:
+						信息性:
+							Age: 响应持续时长
+							Server: 服务器程序软件名称和版本
+
+						协商首部: 某资源有多种表示方法时使用
+							Accept-Ranges: 服务器可接受的请求范围类型
+							Vary: 服务器查看的其他首部列表
+							
+						安全响应首部:
+							Set-Cookie: 向客户端设置cookie
+							Set-Cookie2: 
+							WWW-Authenticate: 来自服务器对客户端的质询认证表单
+					
+					实体首部:
+						Allow: 列出对次实体可使用的请求方法
+						Location: 告诉客户端真正的实体位于何处
+
+						Content-Encoding: 
+						Content-Language:
+						Content-Length: 实体的长度
+						Content-Location: 实体真正所处位置
+						Content-Type: 主体的对象类型
+
+						缓存相关:
+							ETag: 实体的扩展标签
+							Expires: 实体的过期时间
+							Last-Modified: 最后一次修改的时间
+	
+	httpd-2.2 (2)
+
+		15. curl命令
+				curl是基于URL语法在命令行方式下工作的文件传输工具,它支持FTP,FTPS,HTTP,HTTPS,GOPHER,TELNET,DICT,FILE及LDAP等协议.
+				curl支持HTTPS认证, 并且支持HTTP的POST,PUT等方法, FTP上传, kerberos认证,HTTP上传,代理服务器,cookies,用户名/密码认证,
+				下载文件断点续传,尚在文件断电续传,http代理服务器管道(proxy tunneling), 甚至它还支持IPv6, socket5代理服务器,
+				通过http代理服务器上传文件到FTP服务器等等, 功能十分强大.
+
+				MIMI: major/minor, image/png, image/gif
+
+				curl [options] [URL...]
+
+				curl的常用选项:
+					-A/--user-agent <string> 设置用户代理发送给服务器
+					-basic 使用HTTP基本认证
+					--tcp-nodelay 使用TCP_NODELAY选项
+					-e/--referer <URL> 来源网址
+					--cacert <file> CA证书 (SSL)
+					--compressed 要求返回时压缩的格式
+					-H/--header <line> 自定义头信息传递给服务器
+					-I/--head 只显示响应报文首部信息
+					--limit-rate <rate> 设置传输速度
+					-u/--user <user[:password]> 设置服务器的用户名和密码
+					-0/--http1.0 使用HTTP 1.0
+				
+			另外一个工具: elinks
+				elinks [OPTION]... [URL]...
+					-dump: 不仅如此交互式模式, 而直接将URL的内容输出至标准输出
+		
+		16 使用mod_deflate模块压缩页面优化传输速度
+
+			使用场景:
+				(1) 节约带宽,额外消耗CPU; 同时,可能有些较老的浏览器不支持
+				(2) 压缩适于压缩的资源, 例如文本文件
+
+			确保deflate模块被装载 LoadModule deflate_module modules/mod_deflate.so
+
+			SetOutputFilter DEFLATE
+
+			# mod_deflate configuration
+
+			# Restrict compression to these MIME types
+			AddOutputFilterByType DEFLATE text/plain
+			AddOutputFilterByType DEFLATE text/html
+			AddOutputFilterByType DEFLATE application/xhtml+xml
+			AddOutputFilterByType DEFLATE text/xml
+			AddOutputFilterByType DEFLATE application/xml
+			AddOutputFilterByType DEFLATE application/x-javascript
+			AddOutputFilterByType DEFLATE text/javascript
+			AddOutputFilterByType DEFLATE text/css
+
+			# Level of compression (Highest 9 - Lowest 1)
+			DeflateCompressionLevel 9
+
+			# Netscape 4.x has some problems.
+			BrowserMatch ^Mozilla/4 gzip-only-text/html
+
+			# Netscape 4.06-4.08 have some more problems
+			BrowserMatch ^Mozilla/4\.0[678] no-gzip
+
+			# MSIE masquerades as Netscape, but it is fine
+			BrowserMatch \bMSI[E] !no-gzip !gzip-only-text/html
+
+		17. https
+
+			http over ssl = https 443/tcp
+				ssl: v3
+				tls: v1
+
+				https://
+
+			SSL会话的简化过程:
+				(1) 客户端发送可供选择的加密方式,并向服务器请求证书
+				(2) 服务器端发送证书以及选定的加密方式给客户端
+				(3) 客户端取得证书并进行证书验证
+					如果信任给其发证书的CA:
+						(a) 验证证书来源的合法性: 用CA的公钥解密证书上的数字签名
+						(b) 验证证书的内容的合法性: 完整性验证
+						(c) 检查证书的有效期限
+						(d) 检查证书是否被吊销
+						(e) 证书中拥有者的名字,与访问的目标主机要一致
+				(4) 客户端生成临时会话密钥(对称密钥), 并使用服务器端的公钥加密此数据发送给服务器,完成密钥交换
+				(5) 服务端用此密钥加密用户请求的资源, 响应给客户端	
+
+				注意: SSL会话是基于IP地址创建的: 所以单IP的主机上, 仅可以使用一个https虚拟主机
+
+			回顾几个属于: PKI, CA, CRL, X.509 (v1, v2, v3)
+
+			配置httpd支持https:
+				(1) 为服务器申请数字证书
+					测试: 通过私建CA发证书
+						(a) 创建私有CA
+						(b) 在服务器创建证书签署请求
+						(c) CA签署证书
+				(2) 配置httpd支持使用ssl, 及使用的证书
+					# yum install mod_ssl
+
+					配置文件: /etc/httpd/conf.d/ssl.conf
+						DocumentRoot
+						ServerName
+						SSLCertificateFile
+						SSLCertificateKeyFile
+				(3) 测试基于https访问响应的主机:
+					# openssl s_client [-connect host:port] [-cert filename] [-CApath directory] [-CAfile filename]
+		
+		18. httpd自带的工具程序
+
+			htppasswd: basic认证基于文件实现时, 用到的账号密码文件生成工具
+			apachectl: httpd自带的服务控制脚本, 支持start, stop
+			apxs: 由httpd-devel包提供的(yum install httpd-devel),扩展httpd使用第三方模块的工具 
+			rotatelogs: 日志滚动工具
+				access.log -->
+				access.log, access.1.log
+				access.log, access.1.log, access.2.log
+			suexec:
+				访问某些有特殊权限配置的资源时,临时切换至指定用户运行
+			
+			ab: apache benchmark
+
+		19. http压力测试工具
+			ab
+			webbench
+			httpd_load
+
+			jmeter
+			loadrunner
+
+			tcpcopy: 网易开发的,把一个系统上的所有请求记录成一个文件,然后用这个文件可以导入到另外一个系统.通常用来做测试,比如原来的系统性能不够了,
+			现在买了个新的主机,试验一下新的主机能不能轻松抗住老系统(生产环境)的请求压力.
+
+			ab [OPTIONS] URL
+				-n: 总的请求数
+				-c: 模拟的并发数
+				-k: 以持久连接模式测试
+
+			[root@localhost conf.d]# ab -c 100 -n 10000 http://192.168.4.98/test.html
+
+			ulimit -n #: 调整当前用户可以同时打开的文件数
+
+		练习题:
+		1. 建立httpd服务器(基于编译的方式进行,初学者可以使用rpm), 要求:
+			提供两个基于名臣过的虚拟主机:
+				(a)www1.stuX.com, 页面文件目录为/web/vhosts/www1 
+				错误日志为/var/log/httpd/www1.err, 访问日志为/var/log/httpd/www1.access
+				(b)www2.stuX.com, 页面文件目录为/web/vhosts/www2
+				错误日志为/var/log/httpd/www2.err, 访问日志为/var/log/httpd/www2.access
+				(c)为两个虚拟主机建立各自的主页文件index.html,内容分别为其对应的主机名
+				(d)通过www1.stuX.com/server-status输出httpd工作状态相关信息,且只允许提供账号密码才能访问(status:status)
+		
+		2.为商量的第2个虚拟主机提供https服务,是的用户可以通过https安全的访问此web站点
+			(1) 要求使用证书认证, 证书中要求使用的国家(CN),州(HA),城市(ZZ)和组织(MageEdu)
+			(2) 设置部门为Ops,主机名为www2.stuX.com,邮件为admin@stuX.com
+
+回顾: httpd协议基础, httpd的基础配置
+
+	http事务: 请求<-->响应
+		request:
+			<method> <URL> <version>
+			<HEADERS>
+
+			<entity>
+		response:
+			<version> <status> <reason phrase>
+			<HEADERS>
+
+			<entity>
+		
+		请求方法: GET, HEAD, POST, PUT, DELETE, OPTIONS, TRACE, ...
+
+		响应状态码:
+			1xx: 额外信息
+			2xx: 成功类, 200
+			3xx: 重定向类
+			4xx: 错误类, 客户端错误
+			5xx: 错误类, 服务器端错误
+
+		httpd的基本配置
+			curl, https(ssl), ab
+
+http的应用
+
+		httpd-2.4
+
+			新特性:
+				(1) MPM支持运行DSO机制, 以模块形式按需加载
+				(2) 支持event MPM
+				(3) 支持异步读写
+				(4) 支持每模块及每个目录分别使用各自的日志级别
+				(5) 没请求配置 <If>
+				(6) 增强版的表达式分析器
+				(7) 支持毫秒级的keepalive timeout
+				(8) 基于FQDN的虚拟主机不再需要NameVirtualHost指令
+				(9) 支持用户自定义变量
+			
+			新模块:
+				(1) mod_proxy_fcgi
+				(2) mod_ratelimit
+				(3) mod_remoteip
+			
+			修改了一些配置机制:
+				不载支持使用Order, Deny, Allow来做基于IP的访问控制
+			
+		安装httpd-2.4
+
+			httpd依赖于apr-1.4, apr-util, apr-icon
+				apr: apache portable runtime
+
+		CentOS 6:
+			默认: apr-1.3.9, apr-util-1.3.9
+			不建议直接使用rpm直接升级, 因为apr不只是httpd一个程序在用.贸然升级可能会影响其他程序, 所以需要编译安装
+			
+			编译安装步骤:
+				1.4+b版本的apr和apr-util
+
+				前提: 
+					安装开发环境, 安装pcre-devel
+
+				(1) apr
+					# ./configure --prefix=/usr/local/apr
+					# make && make install
+
+				(2) apr-util
+					# ./configure --prefix=/usr/local/apr-util --with=/usr/local/apr
+					# make && make install
+				
+				# groupadd -r apache
+				# useradd -r -g apache apache
+				# ./configure --prefix=/usr/local/apache --sysconf=/etc/httpd24 --enable-so --enable-ssl --enable-cgi --enable-rewrite \
+				--with-zlib --with-pcre --with-apr=/usr/local/apr --with-apr-util=/usr/local/apr-util --enable-modules=most \
+				--enable-mpms-shared=all --with-mpm=prefork
+				# make && make install
+
+				启动服务:
+					apachectl
+					# /usr/local/apache/bin/apachectl
+					如果不想每次写这么长的路径,可以加到PATH变量中
+					新建文件: 
+					vim /etc/profile.d/httpd.sh
+					内容如下:
+					export PATH=/usr/local/apache/bin:$PATH
+					加载配置文件
+					# . /etc/profile.d/httpd.sh
+					然后就可以直接使用apachectl了
+		
+		CentOS 7:
+			配置文件:
+				主配置文件: /etc/httpd/conf/httpd.conf
+				模块配置文件: /etc/httpd/conf/modules.d/*.conf
+				辅助配置文件: /etc/httpd/conf.d/*.conf
+			
+			mpm: 以DSO机制提供, 配置文件00-mpm.conf
+
+			服务控制: systemctl {start|stop|restart|status|reload} httpd.service
+			
+		配置:
+				(1) 切换使用MPM
+					LoadModule mpm_NAME_module modules/mod_mpm_NAME.so				
+						NAME: prefork, event, worker
+				(2) 修改'Main' server的DocumentRoot
+				(3) 基于IP的访问控制法则
+					允许所有主机访问: Require all granted
+					拒绝所有主机访问: Require all deny
+
+					控制特定IP访问:
+						Require ip IPADDR: 授权指定来源地址的主机访问
+						Require not ip IPADDR: 拒绝指定来源地址的主机访问
+
+						IPADDR:
+							IP: 172.16.100.2
+							Network/mask: 172.16.0.0/255.255.0.0
+							Network/Length: 172.16.0.0/16
+							Net: 172.16
+
+					控制特定主机(HOSTNAME)访问
+						Require host HOSTNAME
+						Require not host HOSTNAME
+
+						HOSTNAME:
+							FQDN: 特定主机
+							DOMAIN: 指定域内的所有主机
+					<RequireAll>
+						Require all granted
+						Require not ip 10.252.46.165
+					</RequireAll>
+				(4) 虚拟主机
+					基于IP,PORT和FQDN都支持
+					基于FQDN的不在需要NameVirtualHost指令
+				(5) ssl
+					启用模块:
+						LoadModule ssl_module modules/mod_ssl.so
+				(6) CentOS 6 服务脚本
+						(a) 新增/etc/rc.d/init.d/脚本文件
+						(b) chkconfig --add 脚本名
+						(c) chkconfig --list  脚本名
+shell脚本范例
+/etc/rc.d/init.d/functions 
+
+LAMP:
+	a: apache
+	m: mariadb, mysql
+	p: php, perl, python
+
+	LAMMP: memcached
+
+	静态资源: 静态内容,客户端从服务器获得的资源的表现形式与源文件相同
+	动态资源: 通常是程序文件, 需要在服务器执行之后, 将执行的结果返回给客户端
+
+		CGI: Common Gateway Interface
+
+		fastcgi
+
+		程序=指令+数据
+	
+	httpd+php的组成方式:
+		modules:
+		CGI
+		fastcgi
+
+
+
+
+
+				
