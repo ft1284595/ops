@@ -2978,7 +2978,13 @@ LAMP(2)
 									float
 								双精度浮点型
 									double
-					
+					日期时间型:
+						日期: DATE
+						时间: TIME
+						日期时间: DATETIME
+						时间戳: TIMESTAMP
+						年份: YEAR(2), YEAR(4)					
+
 					修饰符:
 						NOT NULL: 非空约束
 						DEFAULT VALUE: 设定默认值
@@ -2987,11 +2993,145 @@ LAMP(2)
 			vhost1: pma.stuX.com, phpMyAdmin, 同时提供https服务
 			vhost2: wp.stuX.com, wordpress
 			vhost3: dz.stuX.com, Discuz
+	
+回顾: MariaDB的基础
 
+	关系: 二维关系, 表(行,列)
+	设计范式:
+		第一范式: 列不可分,字段是原子性
+		第二范式: 要有主键
+		第三范式: 任何表都不应该有依赖于其他表非主键的字段
+	约束: 主键, 唯一键, 外键, (检查性约束)
+	MariaDB安装方式:
+		源码编译安装
+		通用二进制格式
+		包管理器(rpm, deb)
+			OS vendor, 程序官方
+	
+	SQL: 
+		数据库组件: 数据库, 表, 索引, 视图, 用户, 权限
+			存储过程, 存储函数, 触发器, 时间调度器
+		
+		创建数据库, 设计数据表
+			字段: 字段名, 数据类型, 约束
 
+		DDL, DML, DCL
+			DDL: CREATE, DROP, ALTER
+			DML: INSERT(REPLACE), UPDATE, DELETE, SELECT
+			DCL: GRANT, REVOKE
 
+		数据类型:
+			字符:
+				变长字符: VARCHAR(#), VARBINARY(#)
+				定长字符: CHAR(#), BINARY(#)
+				内置类型: ENUM, SET
+				对象格式: TEXT, BLOB
+			数值:
+				精确数值:
+					整型: INT
+						TINYINT, SMALLINT, INT, MEDIUMINT, BIGINT
+					十进制: DECIMAL
+				近似数值:
+					单精度: FLOAT
+					双精度: DOUBLE
+			
+			修饰符:
+				NOT NULL
+				DEFAULT
+		数据库:
+			CREATE DATABASE [IF NOT EXISTS] 'db_name'
+				CHARACTER SET [=] charset
+				COLLATE [=] collate
+
+			SHOW CHARACTER SET;
+			SHOW COLLATIONS;
+
+			DROP DATABASE [IF EXISTS] 'db_name';
+
+		表:
+			CREATE TABLE [IF NOT EXISTS] 'tbl_name' (col1 type1, col2 type2 ...);
+				col type1
+				PRIMARY KEY(col1, ...)
+				INDEX(col1, ...)
+				UNIQUE KEY(col1, ...)
+
+			表选项:
+				ENGINE [=] engine_name
+				ROW_FORMAT [=] {DEFAULT|DYNAMIC|FIXED|COMPRESSED|REDUNANT|COMPACT}
+
+				SHOW ENGINES;
+
+			获取帮助:
+				mysql> HELP CREATE TABLE;
+
+			查看创建命令:
+				SHOW CREATE TABLE tbl_name;
+
+			查看表状态:
+				SHOW TABLE STATUS LIKE 'tbl_name'\G		
+				//上面的\G是把一行数据竖排显示,因为有的时候一行的字段太多了,很难排版在一行显示,竖排显示方便查看
+			
+			DROP TABLE [IF EXISTS] 'tbl_name';
+
+			ALTER TABLE 'tbl_name'
+				字段:
+					添加字段: add
+						ADD col1 data_type [FIRST|AFTER col_name]
+					删除字段: drop
+					修改字段: modify, change, alter
+				索引:
+					添加索引: add
+					删除索引: drop
+				表选项:
+					修改
+			
+			查看表上的索引: SHOW INDEXES FROM [db_name.]tbl_name;
+		
+		索引:
+			索引是特殊的数据结构: 定义在查找时查找条件的字段
+
+			索引: 要有索引名称
+
+			创建索引:
+				CREATE INDEX index_name ON tbl_name (index_col_name,...);
+			删除索引:
+				DROP INDEX index_name ON tbl_name;
+
+	DML: INSERT, DELETE, SELECT, UPDATE
+
+		INSERT INTO:
+			INSERT [INTO] tbl_name [(col_name,...)] {VALUES | VALUE} (val1,...),(...),...
+
+		SELECT:
+			SELECT col1,col2,... FROM tbl_name [WHERE CLAUSE] [ORDER BY 'col_name' [ASC|DESC]] [LIMIT [m,]n];
+				字段表示法:
+					*: 所有字段
+					as: 字段别名, col1 AS asilas1
+
+				WHERE clause:
+					操作符:
+						>, <, >=, <=, ==, !=
+						BETWEEN ... AND ...
+						LIKE: 
+							%: 任意长度的任意字符
+							_: 任意单个字符
+						RLIKE: 
+							正则表达式模式匹配,不推荐使用,因为要调用正则引擎,会降低效率
+						IS NULL:
+						IS NOT NULL:
+						
+
+					条件逻辑操作:
+						and
+						or
+						not
 				
+		DELETE：
+			DELETE FROM tbl_name [WHERE clause]  [ORDER BY 'col_name' [ASC|DESC]] [LIMIT [m,]n];
 
+		UPDATE:
+			UPDATE tbl_name SET col1=new_val1, col2=new_val2, ... [WHERE clause]  [ORDER BY 'col_name' [ASC|DESC]] [LIMIT [m,]n];
 
+	DCL:
 
 				
