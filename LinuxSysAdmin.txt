@@ -5104,6 +5104,24 @@ bash的字符串处理工具:
 
 		${var:+value}: 如果var不为空,则返回value.
 		${var:?error_info}: 如果var为空或未设置, 那么返回error_info(这个error_info是打印在标准错误流上面的), 否则,返回var的值.
+
+		注意: 上面的${var:[-=+?]value}的写法官方的叫法是Shell Parameter Expansion. 
+		这些写法中的冒号(:)可以不写,不写表示只判断var是否设置而不检查var是否为空.
+		${var-value}: 如果var没有设置,那么返回value, 否则,返回var的值.
+
+		具体参见: https://www.gnu.org/software/bash/manual/html_node/Shell-Parameter-Expansion.html
+		${parameter:-word}, ${parameter:=word},${parameter:?word},${parameter:+word}
+		When not performing substring expansion, using the form described below (e.g., ‘:-’), 
+		Bash tests for a parameter that is unset or null. 
+		Omitting the colon results in a test only for a parameter that is unset. 
+
+		题外话: 
+		(1)查看bash变量是否为null
+			(i)如果变量没有设置或者是null或者是空字符串，则返回true if [ -z "$var" ]; then echo "NULL"; else echo "Not NULL"; fi
+			(ii)判断bash变量是否为NULL的另一种方法： [ -z "$var" ] && echo "NULL"
+			(iii)判断bash变量是否为NULL [[ ! -z "$var" ]] && echo "Not NULL" || echo "NULL"
+		(2)怎么判断变量是否存在(被设置过)?
+			可以使用declare -p 命令确定一个变量是否存在.
 	
 	为脚本程序使用配置文件:
 		(1) 定义文本文件,每行定义"name=value"

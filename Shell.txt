@@ -1,0 +1,1692 @@
+
+bash的基础特性:
+	(1) 命令历史
+		history
+			环境变量:
+				HISTSIZE: 命令历史记录的条数
+				HISTFILE: ~/.bash_history
+				HISTFILESIZE: 命令历史文件记录历史的条数
+
+			history -d OFFSET
+			history -c
+			history -10: 显示历史中最近的10条命令
+			history -a: 手动追加当前会话缓冲区中的命令历史至历史文件中
+	
+		调用历史中的命令:
+			!#: 重复执行第#条指令
+			!!:
+			!string:
+	
+		调用上调命令的最后一个参数:
+			!$:
+			Esc,.
+			Alt+.
+	
+		控制命令历史的记录方式:
+			环境变量: HISTCONTROL
+				ignoredups: 忽略重复的命令, 连续切相同就算是重复的
+				ignorespace:忽略以空白开头的命令
+				ignoreboth: 忽略重复的命令也同时忽略以空白开头的命令
+	
+			修改环境变量值的方式: export 变量名="值"
+				变量赋值: 把等号(=)后面的数据存储于变量名指向的内存空间
+	
+	(2) 命令补全
+		bash执行命令:
+			内部命令:
+			外部命令: bash根据PATH环境变量定义的路径, 自左而右在每个路径搜索以给定命令名称命名的文件
+	
+				直接补全: Tab, 用户给定的字符串只有一条唯一对应的命令.
+				以用户给定的字符串为开头的命令不唯一,则再次Tab回给出列表
+	(3) 路径补全
+		把用户给出的字符串当做路劲的开头,并在其指定的上级目下搜寻以指定的字符串开头的文件名
+			如果唯一,则直接补全,
+			否则, 再次Tab便会给出列表
+	
+	(4) 命令行展开
+		~: 展开为用户的主目录
+		~USERNAME: 展开为指定用户的主目录
+		{}: 可承载一个以逗号分隔的列表, 并将其展开为多个路径
+			/tmp/{a,b} = /tmp/a, /tmp/b
+			/tmp/{tom,jerry}/hi = /tmp/tom/hi, /tmp/jerry/hi
+
+			//将一个文件备份出一个后缀名为.bak的备份文件
+			[root@localhost named]# cp /etc/named.conf{,.bak}
+	
+	(5) 命令的执行结果状态
+		成功
+		失败
+	
+		bash使用特殊变量$?来保存最近一条命令的执行结果
+			0: 成功
+			1-255: 失败
+	
+		程序执行有两类结果:
+			程序的返回值:
+			程序的执行状态结果:
+
+bash的基础特性(2):
+	1. 命令别名(alias)
+		通过alias命令实现:
+			(1) alias
+				显示当前shel进程中所有可用的命令别名
+			(2) alias NAME='VALUE'
+				定义别名NAME, 相当于执行命令VALUE
+
+			注意: 在命令行中定义的别名, 仅对当前shell进程有效, 如果想永久有效,需要定义在配置文件中:
+				仅对当前用户有效: ~/.bashrc
+				对所有用户有效: /etc/profile
+	
+				Note: 编辑配置文件给出的新配置不会立即生效,需要重新读取配置文件
+			
+				bash进程重新读取配置文件的两种方式:
+					(1) source /path/to/config_file
+					(2) . /path/to/config_file
+	
+		撤销别名: unalias
+			unalias [-a] name [name ...]
+	
+		Note: 如果别名与原命令的名称相同, 那么如果一定要执行原命令,可以使用(反斜线)"\COMMAND"
+	
+	2. glob(globbing)
+		bash中用于实现文件名的"通配"
+	
+			通配符: *, ?, []
+	
+			(1) *
+				表示任意长度的任意字符
+					a*b: 
+						aab, ab, a123b,aosdifjoaisdjfpoidfb
+						abc
+			(2) ?
+				表示单个任意字符
+					a?b:
+						aab, 
+						ab, a123b, abc
+	
+			(3) []
+				表示指定的范围内的任意单个字符
+					[0-9]
+					[a-z]: 不区分字母的大小写
+					[A-Z]: 所有大写字母
+			(4) [^]
+				匹配指定范围外的任意单个字符
+					[^0-9]
+
+
+			专用字符集合
+				[:digit:]: 任意数字,相当于0-9
+				[:lower:]: 任意小写字母
+				[:upper:]: 任意大写字母
+				[:alpha:]: 任意大小写字母
+				[:alnum:]: 任意数字或字母
+				[:space:]: 空格
+				[:punct:]: 标点符号
+				[:blank:]: 
+				[:cntrl:]: 控制字符
+				[:graph:]:
+				[:print:]
+				[:xdigit:]
+
+--------------------------------------------------------------------------------------
+				这一段是网上找的解释,不确定对不对.
+				[:alnum:] 字母数字字符。在 ASCII 中，等价于：[A-Za-z0-9]
+				[:word:] 与[:alnum:]相同, 但增加了下划线字符。--没有这个,我在bash下面试了,没有
+				[:alpha:] 字母字符。在 ASCII 中，等价于[A-Za-z]
+				[:blank:] 包含空格和 tab 字符。
+				[:cntrl:] ASCII 的控制码。包含了0到31，和127的 ASCII 字符。
+				[:digit:] 数字0到9
+				[:graph:] 可视字符。在 ASCII 中，它包含33到126的字符。
+				[:lower:] 小写字母。
+				[:punct:] 标点符号字符。
+				[:print:] 可打印的字符。等于[:graph:]中的所有字符，再加上空格字符。
+				[:space:] 空白字符，包括空格，tab，回车，换行，vertical tab, 和 form feed.在 ASCII 中，
+					等价于[ \t\r\n\v\f]
+				[:upper:] 大写字母。
+				[:xdigit:] 用来表示十六进制数字的字符。在 ASCII 中，等价于[0-9A-Fa-f]
+
+--------------------------------------------------------------------------------------
+
+		练习:
+			1. 显示/var目录下所有以l开头,以一个小写字母结尾,且中间出现至少一位数字的文件或目录
+				# ls -d /var/l*[0-9]*[[:lower:]]
+			2. 显示/etc目录下,以任意一位数字开头,且以非数字结尾的文件或目录
+				# ls -d /etc/[0-9]*[^0-9]
+			3. 显示/etc目录下,以非字母开头,后面跟了一个字母及其他任意长度任意字符的文件或目录
+				# ls -d /etc/[^[:alpha:]][[:alpha:]]
+			4. 复制/etc目录下,所有以m开头,以非数字结尾的文件或目录至/tmp/mageedu目录中
+				# cp -a /etc/m*[^0-9] /tmp/mageedu
+			5. 复制/etc目录下,所有以.d结尾的文件或目录至/tmp/magedu.com目录中
+				# cp -a /etc/*.d /tmp/magedu.com
+			6. 复制/etc目录下,所有以.conf结尾,且以m,n,r,p开头的文件或目录至/tmp/mageedu.com目录中
+				# cp -a /etc/[mnrp]*.conf /tmp/mageedu.com
+	
+	3. bash的快捷键
+		
+		Ctrl+l: 清屏,相当于clear命令
+	
+		Ctrl+a: 将光标跳转至命令行的开始处
+		Ctrl+e: 跳转至命令结尾处
+	
+		Ctrl+c: 取消命令的执行
+	
+		Ctrl+u: 删除命令行首至光标所在处的所有内容
+		Ctrl+k: 删除光标所在处至命令行尾部的所有内容
+	
+		Ctrl+d: 删除光标所在的字符
+		Ctrl+h: 删除光标左侧的字符
+	
+		Ctrl+b: 左移光标
+		Ctrl+f: 右移光标
+	
+	4. bash的I/O重定向及管道
+		
+		程序: 指令+数据
+			读入数据: Input
+			输出数据: Output
+	
+		每一个打开的文件都有一个fd: file descriptor(文件描述符)
+	
+		标准输入: keyboard, 0
+		标准输出: monitor, 1
+		标准错误: monitor, 2
+	
+		I/O重定向: 改变标准位置
+	
+		输出重定向: COMMAND > NEW_POS, COMMAND >> NEW_POS
+			>: 覆盖重定向, 目标文件中的原有内容会被清除
+			>>: 追加重定向, 新内容会追加至目标文件尾部
+	
+			# set -C: 禁止将内容覆盖输出至已有内容的文件中
+			强制覆盖: >|
+				[root@localhost ~]# set -C
+				[root@localhost ~]# cat /etc/fstab > /tmp/fstab.txt
+				[root@localhost ~]# cat /etc/fstab > /tmp/fstab.txt
+				-bash: /tmp/fstab.txt: cannot overwrite existing file
+				[root@localhost ~]# cat /etc/fstab >| /tmp/fstab.txt
+				[root@localhost ~]# 
+			
+			# set +C: Using + rather than - causes these flags to be turned off. 允许覆盖已有内容的文件
+	
+			2>: 覆盖重定向错误输出数据流
+			2>>: 追加重定向错误输出数据流
+	
+			标准输出和错误输出各自指向不同位置:
+				COMMAND > /path/to/file.out 2> /path/to/error.our
+	
+			合并标准输出和错误输出为同一个数据流进行重定向
+				&>: 覆盖重定向
+				&>>: 追加重定向
+	
+				COMMAND > /path/to/file.out 2> &1 		//这里加&是为了区别1是文件描述符,而不是一个文件的名称
+					将错误数据流2重定向标准输出流1, 而标准输出流1已经重定向到/path/to/file.out
+	
+				COMMAND >> /path/to/file.out 2>> &1 
+					将错误数据流2追加到标准输出流1, 而标准输出流1已经追加重定向到/path/to/file.out
+	
+		输入重定向: <
+			
+			tr命令: 转换或删除字符
+				tr [OPTION]... SET1 [SET2]
+	
+				[root@localhost ~]# tr 'a-z' 'A-Z' < /etc/fstab
+	
+				#
+				# /ETC/FSTAB
+				# CREATED BY ANACONDA ON FRI DEC 31 05:18:11 2021
+				#
+				# ACCESSIBLE FILESYSTEMS, BY REFERENCE, ARE MAINTAINED UNDER '/DEV/DISK'
+				# SEE MAN PAGES FSTAB(5), FINDFS(8), MOUNT(8) AND/OR BLKID(8) FOR MORE INFO
+				#
+				/DEV/MAPPER/VOLGROUP-LV_ROOT /                       EXT4    DEFAULTS        1 1
+				UUID=FC55467A-EAA7-4ED8-8B59-7DF4004D16F8 /BOOT                   EXT4    DEFAULTS        1 2
+				/DEV/MAPPER/VOLGROUP-LV_HOME /HOME                   EXT4    DEFAULTS        1 2
+				/DEV/MAPPER/VOLGROUP-LV_SWAP SWAP                    SWAP    DEFAULTS        0 0
+				TMPFS                   /DEV/SHM                TMPFS   DEFAULTS        0 0
+				DEVPTS                  /DEV/PTS                DEVPTS  GID=5,MODE=620  0 0
+				SYSFS                   /SYS                    SYSFS   DEFAULTS        0 0
+				PROC                    /PROC                   PROC    DEFAULTS        0 0
+
+
+			HERE Document: <<
+				# cat << EOF
+				# cat > /path/to/somefile << EOF
+	
+		管道:
+			COMMAND1 | COMMAND2 | COMMAND3 | ...
+	
+			Note: 最后一个命令会在当前shell进程的子shell进程中执行
+	
+			tee命令:
+				tee [OPTION]... [FILE]...
+				tee的作用是将一个输入的内容输出到标准输出和另一个文件
+	
+		练习:
+			1. 将/etc/passwd文件中的前5行内容转换为大写后保存至/tmp/passwd.out文件中
+				head -n 5 /etc/passwd | tr 'a-z' 'A-Z' > /tmp/passwd.out
+				head -5 /etc/passwd | tr 'a-z' 'A-Z' | cat > /tmp/passwd.out
+			2. 将登录当前系统上用户信息中的后3位信息转换为大写后保存至/tmp/who.out文件中
+				who | tail -3 | tr 'a-z' 'A-Z' | cat > /tmp/who.out
+
+bash的基础特性(3)
+	1. 提供了编程环境(变量,数组,分支,循环...)
+		
+		程序: 指令+数据
+	
+		程序编程风格:
+			过程式: 以指令为中心,数据服务于指令
+			对象式: 以数据为中心,指令服务于数据
+	
+		shell程序: 提供了编程能力, 解释执行
+	
+		程序的两种执行方式:
+			计算机: 运行二进制指令
+			编程语言: 
+				低级: 汇编
+				高级: 
+					编译: 高级语言-->编译器-->目标代码
+						C, C++
+					解释: 高级语言-->解释器-->机器代码
+						shell, perl, python
+	
+		过程式编程:
+			顺序执行
+			循环执行
+			选择执行
+	
+			shell编程: 过程式,解释执行
+				编程语言的基本结构:
+					数据存储机制: 变量,数组
+					表达式
+					语句
+	
+	shell脚本: 文本文件
+		shebang:
+			#!/bin/bash
+			#!/usr/bin/python
+			#!/usr/bin/perl
+	
+		magic number: 魔数
+	
+		运行脚本的方式有两种:
+			1. 给与执行权限,通过具体的文件路径指定文件执行
+			2. 直接运行解释器,将脚本作为解释器程序的参数运行
+	
+	变量:
+		命名的内存空间
+	
+		数据存储方式: ASCII
+			字符: 110: 24
+			数值: 110 -->8
+				整型
+				浮点型
+	
+		变量: 变量类型
+			作用:
+				1. 数据存储格式
+				2. 参与的运算
+				3. 表示的数据范围
+	
+			类型:
+				字符
+				数值:
+					整型
+					浮点型
+	
+			编程程序语言:
+				强类型:
+				弱类型: bash
+					把所有要存储的数据统统当做字符进行计算
+					不支持浮点数
+	
+			逻辑运算:
+				true, false
+				1	, 0
+	
+				与: 
+					1 && 1 = 1
+					1 && 0 = 0
+					0 && 1 = 0
+					0 && 0 = 0
+				或:
+					1 || 1 = 1
+					1 || 0 = 1
+					0 || 1 = 1
+					0 || 0 = 0
+				非: 
+					!1 = 0
+					!0 = 1
+				异或:
+
+bash的基础特性(4)
+	
+	变量类型:
+		数据存储格式,存储空间大小,参与运算种类
+	
+		字符型
+		数值型:
+			整型
+			浮点型
+	
+		强类型: 定义变量时必须制定类型,参与运算必须符合类型要求:调用为声明变量会产生错误
+		弱类型: 无序制定类型,默认均为字符型,参与运算会自动进行饮食类型转换
+			bash
+	
+	bash中的变量的种类
+		根据变量的生效范围等标准:
+			本地变量: 生效范围为当前shell进程,对当前shell之外的其它shell进程(包括其子shell进程)均无效
+			环境变量: 生效范围为当前shell进程及其子进程
+			局部变量: 比本地变量限制更严格的变量,生效范围是当前shell进程中某代码片段(通常指函数)
+			位置变量: $1,$2,...来表示, 用于让脚本在脚本代码中调用通过命令行传递个它的参数
+			特殊变量: $?,$0,$*,$@,$#,$$
+				$$: 进程的pid
+	
+		本地变量:
+			变量赋值: name='value'
+				可以使用引用:
+					value:
+						(1) 可以是直接字符串 name="username"
+						(2) 变量引用 name="$username"
+						(3) 命令引用 name=`COMMAND` 等价于 name=$(COMMAND)
+						(4) 使用算术表达式 
+			变量引用: ${name}, $name
+				"": 弱引用,其中的变量引用会被替换为变量值
+				'': 强引用,其中的变量引用不会被替换为变量值,保持源字符串
+	
+			显示已定义的所有变量:
+				set
+			销毁变量:
+				unset name
+	
+		环境变量:
+			变量声明和赋值:
+				export name=VALUE
+				declare -x name=VALUE
+			变量引用: $name, ${name}
+			显示所有环境变量:
+				export
+				env
+				printenv
+			销毁:
+				unset name
+	
+			bash有许多内建的环境变量: PATH, SHELL, UID, HISTSIZE, HOME, PWD, OLDPWD, HISTFILE, PS1
+	
+		变量命名法则:
+			1. 不能使用程序中的保留字: 例如if, for
+			2. 只能使用数字,字母,下划线 且不能以数字开头
+			3. 尽量做到见名知意
+	
+		只读变量:
+			readonly name
+			declare -r name
+			貌似没有正常的取消只读变量的方法,用unset删除只读变量都不行.
+	
+		位置变量:
+			在脚本代码中调用通过命令行传递给脚本的参数.
+				$1, $2, ...: 对应调用第1,第2等等的参数
+					shift [n]
+					位置变量的换岗操作,可以使用shift来删除传递给脚本的参数
+				$0: 命令本身
+	
+				$*: 传递给脚本的所有参数, 所有的参数作为一个字符串
+				$@: 传递给脚本的所有参数, 每个参数作为一个独立的字符串
+				$#: 传递个脚本的参数的个数
+	
+			示例: 判断给出的文件的行数
+				#!/bin/bash
+				linecount="$(wc -l $1 | cut -d' ' -f1)"
+				echo "$1 has $linecount lines."
+	
+	bash的配置文件:
+	
+		按照生效范围划分,存在两类:
+			全局配置:
+				/etc/profile
+					/etc/profile.d/*.sh
+				/etc/bashrc
+			个人配置:
+				~/.bash_profile
+				~/.bashrc
+	
+		按照功能划分,也存在两类:
+			profile类: 为交互式登录的shell提供配置
+				全局: /etc/profile, /etc/profile.d/*.sh
+					对于profile.d目录下的配置文件,有些普通用户可能执行不了.
+					/etc/profile也是一样的,有一些普通用户的权限可能不够.
+				个人: ~/.bash_profile
+				功用:
+					(1) 用于定义环境变量
+					(2) 运行命令或脚本
+			bashrc类: 为非交互式登录的shell提供配置
+				全局: /etc/bashrc
+				个人: ~/.bashrc
+				功用: 
+					(1) 定义命令别名
+					(2) 定义本地变量
+			profile类和bashrc类配置文件,两者的界限不是很清晰,交互式登录也可能使用bashrc类的配置文件,反之亦然.
+
+
+		shell登录的类别:
+			交互式登录:
+				1. 直接通过终端输入账号密码登录
+				2. 使用"su - UserName" 或 "su -l UserName"切换的用户
+	
+				交互式登录读取配置文件的顺序:
+				/etc/profile --> /etc/profile.d/*.sh --> ~/.bash_profile --> ~/.bashrc --> /etc/bashrc
+	
+			非交互式登录:
+				1. su UserName
+				2. 图形界面下打开的终端
+				3. 执行脚本
+	
+				非交互式登录读取配置文件的顺序:
+				~/.bashrc --> /etc/bashrc --> /etc/profile.d/*/sh
+		编辑配置文件定义的新配置的生效方式:
+			(1) 重新启动shell进程
+			(2) 使用source或.命令进程重新加载配置文件
+	
+		问题:
+			1. 定义对所有用户都生效的别名?
+				/etc/profile
+			2. 让用户的PATH环境变量的值多出一个路径, 例如增加/usr/local/apache2/bin
+				管理员:
+				所有: 
+	
+	bash中的算术运算:
+		+, -, *, /, %, **
+		可以使用help let命令来查看所有的运算符
+	
+		实现算术运算:
+			(1) let var=算术表达式
+				算术表达式默认是没有返回值的,所以需要一个变量来存放结果
+	
+			(2) var=$[算术表达式]
+				$[算术表达式]是有返回值的
+				[root@localhost ~]# num1=3
+				[root@localhost ~]# num2=10
+				[root@localhost ~]# let sum=$num1+$num2
+				[root@localhost ~]# echo $sum
+				13
+				[root@localhost ~]# echo "$num1+$num2"
+				3+10
+				[root@localhost ~]# echo "The sum is: $[$num1+$num2]"
+				The sum is: 13
+				[root@localhost ~]# 
+	
+			(3) var=$((算术表达式))
+	
+			(4) var=$(expr arg1 arg2 arg3 ...)
+					arg1: 被操作数
+					arg2: 运算符
+					arg3: 操作数
+					...: 其它操作数
+	
+					Note: 
+						乘法符号*在$(expr )中需要转义\*, 因为bash环境下*有其他意义
+							[root@localhost ~]# mul2=$(expr $num1 * $num2)
+							expr: syntax error
+							[root@localhost ~]# mul2=$(expr $num1 \* $num2)
+							[root@localhost ~]# echo $mul2
+							30
+							[root@localhost ~]#
+						乘法符号*并不是在所有情况下都需要转义,在$[]中不用转义,转义了反而会出错
+							[root@localhost ~]# mul3=$[$num1*$num2]
+							[root@localhost ~]# echo $mul3
+							30
+							[root@localhost ~]# mul3=$[$num1\*$num2]
+							-bash: 3\*10: syntax error: invalid arithmetic operator (error token is "\*10")
+							[root@localhost ~]# 
+					鉴于这些瑕疵,所以应该避免使用这种方式来赋值,转而使用前面的3种方式实现算术运算
+	
+			bash中有内建的随机数生成器: $RANDOM
+				$RANDOM is an internal Bash function (not a constant) that returns a pseudorandom
+				integer in the range 0 - 32767. It should not be used to generate an encryption key.
+	
+			增强型赋值:
+				+=, -=, *=, /=, %=
+	
+				let varOPERATORvalue
+					例如: let count+=1
+	
+			自增,自减:
+				let var+=1
+				let	var++
+	
+				let var-=1
+				let var--
+	
+		脚本练习: 
+			1. 计算/etc/passwd文件中的第10个用户和第20个用户的ID只和
+				#!/bin/bash
+				userid1=$(head -n 10 /etc/passwd | tail -n 1 | cut -d: -f3)
+				userid2=$(head -n 20 /etc/passwd | tail -n 1 | cut -d: -f3)
+	
+				useridsum=$(($userid1+$userid2))
+				echo "uid sum: $useridsum"
+	
+			2. 传递两个文件路径作为参数给脚本,计算这两个文件中所有空白行之和
+				#!/bin/bash
+	
+				spaceline1=$(grep "^[[:space:]]*$" $1 | wc -l)
+				spaceline2=$(grep "^[[:space:]]*$" $2 | wc -l)
+	
+				echo "The sum of space line: $[$spaceline1+$spaceline2]"
+	
+			3. 统计/etc, /var, /usr目录共有多少个一级子目录和文件
+
+
+		条件测试:
+			判断某种需求是否满足,需要有测试机制来实现.
+	
+			Note:专用的测试表达式需要有测试命令辅助完成测试过程
+	
+			测试命令:
+				test EXPRESSION
+				[ EXPRESSION ]
+				[[ EXPRESSION ]]
+	
+				Note: []是命令, [[]]是bash的关键字, 
+				无论使用[]还是[[]], 它们里面的EXPRESSION的前后必须有空格,否则会出现语法错误
+	
+			bash的测试类型:
+	
+				数值测试:
+					-gt: 是否大于
+					-ge: 是否大于等于
+					-eq: 是否等于
+					-ne: 是否不等于
+					-lt: 是否小于
+					-le: 是否小于等于
+	
+				字符串测试:
+					==:  是否等于, 字符串测试也可以使用=做相等的测试,但是其他类型不能使用=做测试
+					>:	是否大于
+					<: 是否小于
+					!=: 是否不等于
+					=~: 左侧的字符串是否能够被右侧的PATTERN所匹配:
+						Note: 这个表达式一般用于[[]]中
+					-z "STRING": 测试字符串是否为空, 空则为真, 不空则为假
+					-n "STRING": 测试字符串是否不空, 不空则为真, 空则为假
+	
+					Note: 用于字符串比较时用到的操作数都应该使用引号包裹起来
+	
+					小结:
+						可以使用help test 命令来查看测试的操作符
+	
+				文件测试
+			
+		bash自定义退出状态码
+			exit [n]: 自定义退出状态码
+				注意: 脚本中一旦遇到exit命令, 脚本会立即终止: 终止退出状态取决于exit命令后面的数字
+	
+			Note: 如果未给出脚本指定退出状态码, 整个脚本的退出状态码取决于脚本中执行的最后一条命令的状态码
+	
+			练习: 写一个脚本
+				接受一个文件路径作为参数:
+					如果参数个数小于1, 则提示用户"至少应该给出一个参数", 并立即退出
+					如果参数个数不小于1, 则显示第一个参数所指向的文件中的空白行数
+
+bash条件测试:
+
+	测试方式:
+		test EXPRESSION
+		[ EXPRESSION ]
+		[[ EXPRESSION ]]
+	
+	测试表达式的类别:
+		数值比较
+		字符串测试
+		文件测试:
+			存在性测试
+				-a FILE
+				-e FILE: 文件存在性测试, 存在为真,否则为假
+	
+			存在性及类别测试
+				-b FIlE: 是否存在且为块设备文件
+				-c FILE: 是否存在且为字符设备文件
+				-d FILE: 是否存在且为目录文件
+				-f FILE: 是否存在且为普通文件
+				-h FILE 或者 -L FILE: 存在且为符号链接文件
+				-p FILE: 是否存在且为命名管道文件
+				-S FILE: 是否存在且为套接字文件
+			文件权限测试:
+				-r FILE: 是否存在可读
+				-w FILE: 是否存在且可写
+				-x FILE: 是否存在且可执行
+			文件特殊权限测试:
+				-g FILE: 是否存在且拥有sgid权限
+				-u FILE: 是否存在且拥有suid权限
+				-k FILE: 是否存在且拥有sticky权限
+			文件大小(体积)测试:
+				-s FILE: 是否存在且非空
+			文件是否打开:
+				-t fd: fd表示文件描述符是否已经打开且与某终端相关
+				-N FILE: 文件自从上一次被读取之后是否被修改过
+				-O FILE: 当前有效用户是否为文件的属主
+				-G FILE: 当前有效用户是否为文件的属组
+	
+			双目测试:
+				FILE1 -ef FILE2: FILE1与FILE2是否指向同一个设备上的相同inode
+	
+				FILE1 -nt FILE2: FILE1是否新于FILE2(即修改时间离现在更近)
+				FILE2 -ot FILE2: FILE1是否旧于FILE2
+				
+	组合测试条件:
+		逻辑运算: 
+			第一种方式:
+				COMMAN1 && COMMAND2
+				COMMAND1 || COMMAND2
+				! COMMAND
+	
+				[ -e FILE ] && [ -r FILE ]
+	
+			第二种方式:
+				EXPRESSION1 -a EXPRESSION2
+				EXPRESSION1 -o EXPRESSION2
+				! EXPRESSION
+	
+				必须使用测试命令进行:
+				# [ -z "$hostName" -o "$hostName" == "localhost.localdomain" ] && hostname www.mageedu.com
+				# [ -f /bin/cat -a -x /bin/cat ] && cat /etc/fstab
+
+bash脚本编程:
+	过程式编程语言:
+		顺序执行
+		选择执行
+		循环执行
+
+	选择执行:
+		if 判断条件
+		then
+			条件为真的分支代码
+		fi
+
+		if 判断条件; then
+			条件为真的分支代码
+		else
+			条件为假的分支代码
+		fi
+
+bash脚本编程之用户交互:
+	read [option]... [name ...]
+		-p 'PROMPT': 指定提示信息
+		-t TIMEOUT : 超时时间,单位是秒
+
+	bash -n /path/to/some_file
+		检查脚本中的语法错误
+
+	bash -x /path/to/some_file
+		调试执行
+	
+	示例:
+		#!/bin/bash
+		# Version: 0.0.1
+		# Author: Mage
+		# Description: read testing
+
+		read -p "Enter a disk special file: " diskfile 
+		[ -z "$diskfile" ] && echo "please input a parameter." && exit 1
+
+		if fdisk -l | grep "^Disk $diskfile" &> /dev/null; then
+			fdisk -l $diskfile
+		else
+			echo "no such device."
+				exit 2
+		fi
+
+bash脚本编程
+	
+	if语句, bash -n, bash -x
+
+	CONDITION:
+		bash命令:
+			用命令的执行装填结果
+				成功: true
+				失败: false
+
+			成功或失败的意义:取决于用到的命令
+
+	单分支:
+		if CONDITION; then
+			if-true
+		fi
+	
+	双分支:
+		if CONDITION; then
+			if-true
+		else
+			if-false
+		fi
+	
+	多分支:
+		if CONDITION1; then
+			if-true
+		elif CONDITION2; then
+			if-true
+		elif CONDITION3; then
+			if-true
+		...
+		else
+			all-false
+		fi
+
+	示例: 用户键入文件路径, 脚本判断文件类型
+		#!/bin/bash
+		#
+		read -p "Enter a file path: " filename
+
+		if [ -z "$filename" ]; then
+			echo "Usage: Enter a file path."
+			exit 2
+		fi
+
+		if [ ! -e "$filename" ]; then
+			echo "No such file."
+			exit 3
+		fi
+
+		if [ -f $filename ]; then
+			echo "A common file."
+		elif [ -d $filename ]; then
+			echo "A directory."
+		elif [ -L $filename ]; then
+			echo "A symbolic."
+		else
+			echo "other file type."
+		fi
+
+	注意: if语句可以嵌套	
+
+循环: for, while, until
+	循环体: 要执行的代码可能要执行n编
+		进入条件:
+		退出条件:
+
+	for循环:
+		for 变量名 in 列表; do
+			循环体
+		done
+
+		执行机制:
+			依次将列表中的元素赋值给"变量名"; 每次赋值后即执行一次循环体,知道列表中的元素耗尽,循环结束;
+		
+		示例: 添加10个用户, user1 ~ user10, 密码同用户名
+	
+	列表生成方式:
+		(1) 直接给出列表:
+		(2) 整数列表
+			(a) {start..end}
+			(b) $(seq [start [step]], end)  	
+				seq的具体用法可以是用seq --help查看
+		(3) 返回列表的命令
+			$(COMMAND)
+				for file in $(ls /var); do
+		(4) glob
+				for file in /var/*; do
+		(5) 变量引用
+				$@, $*  
+
+		示例:
+			#!/bin/bash
+
+			declare -i estab=0
+			declare -i listen=0
+			declare -i other=0
+
+			for state in $(netstat -tan | grep "tcp\>" | awk '{print $NF}'); do
+				if [ "$state" == 'ESTABLISHED' ]; then
+					let estab++
+				elif [ $state == 'LISTEN'  ]; then
+					let listen++
+				else
+					let other++
+				fi
+			done
+
+			echo "ESTABLISTED: $estab"
+			echo "LISTEN: $listen"
+			echo "Unknown: $other"
+
+	练习1: /etc/rc.d/rc3.d目录下分别有多个以K开头和以S开头的文件
+		分别读取每个文件的文件名,如果文件名以K开头,则输出文件名+Stop,如果文件名以S开头,则输出文件名+Start	
+			"K34filename Stop"
+			"S66filename Start"
+	
+	练习2: 写一个脚本, 使用ping命令探测172.16.250.1 ~ 172.16.250.254之间的主机的在线状态.
+		ping 命令:
+			-c: 指定次数
+			-w #: 指定超时时间,单位是秒
+		可以使用ping命令的返回值$?来判断是否ping通了其他主机
+
+bash脚本编程:
+	编程语言:
+		数据结构
+
+		顺序执行
+		选择执行
+			条件测试
+				运行命令或[[]]
+					执行状态返回值:
+			if
+			case
+		循环执行
+			将某代码段重复运行多次:
+			重复运行多次?
+				循环次数事先已确定
+				循环次数事先不能确定
+
+				必须有进入条件和退出条件:
+
+			for, while, until	
+		
+		函数: 结构化编程及代码重用:
+			function
+	
+	for 循环语法:
+		for NAME in LIST; do
+			循环体
+		done
+
+		列表生成方式:
+			(1) 整数列表
+				{start..end}
+				$(seq start [[step]end])
+			(2) glob
+				/etc/rc.d/rc3.d/K*
+			(3) 命令
+	通过ping命令探测192.168.4.1~254范围内的所有主机的在线状态:
+		#!/bin/bash
+		#
+		net='192.168.4'
+		uphosts=0
+		downhosts=0
+
+		for i in {1..255}; do
+			ping -c 1 -w 1 ${net}.${i} &> /dev/null
+				if [ $? -eq 0 ]; then
+					echo "${net}.${i} is up."
+					let uphosts++
+				else
+					echo "${net}.${i} is down."
+					let downhosts++
+				fi
+		done
+
+		echo "Up hosts: $uphosts."
+		echo "Down hosts: $downhosts."
+
+while循环:
+	while CONDITION; do
+		循环体
+	done
+
+	CONDITION: 循环控制条件, 进入循环之前,先做一次判断,每一次循环之后会再次做判断。
+		条件为"true", 则执行一次循环,知道条件测试状态为"false"终止循环.
+
+		因此: CONDITION一般应该有循环控制变量, 而此变量的值会在循环体中不断的被修正
+
+	示例: 求100以内所有正整数只和:
+		#!/bin/bash
+
+		declare -i sum=0
+		declare -i i=1
+
+		while [ $i -le 100 ]; do
+			let sum+=$i
+			let i++
+		done
+
+		echo "sum=${sum}."
+	
+	练习: 添加10个用户user1-user10
+		#!/bin/bash
+		#
+		declare -i i=1
+		declare -i users=0
+
+		while [ $i -le 10 ]; do
+			if ! id user$i &>/dev/null; then
+				useradd user$i
+				echo "Add user: user$i"
+				let users++
+			fi
+			let i++
+		done
+
+		echo "Add $users users."
+
+
+	练习: 通过ping命令探测192.168.4.1-254范围内的所有主机的在线状态(用while循环)
+		#!/bin/bash
+		#
+		declare -i i=1
+		declare -i uphosts=0
+		declare -i downhosts=0
+
+		net='192.168.4'
+
+		while [ $i -le 254 ]; do
+			if ping -c 1 -w 1 $net.$i &> /dev/null; then
+				echo "$net.$i is up."
+				let uphosts++
+			else
+				echo "$net.$i is down."
+				let downhosts++
+			fi
+			let i++
+		done
+
+		echo "Up hosts: $uphosts."
+		echo "Down hosts: $downhosts."
+
+
+	练习: 打印九九乘法表(分别使用for和while循环实现)
+		#!/bin/bash
+		#
+
+		for j in {1..9}; do
+			for i in $(seq 1 $j); do
+				echo -e -n "${i}x${j}=$[i*j] \t"
+			done
+			echo
+		done
+
+		echo "========================================="
+
+		declare -i i=1
+		declare -i j=1
+		while [ $j -le 9 ]; do
+			while [ $i -le $j ]; do
+				echo -e -n "${i}x${j}=$[$i*$j]\t"
+				let i++
+			done
+			echo 
+			let i=1
+			let j++
+		done
+
+	练习: 利用RANDOM生成10个随机数字,输出这10个数字,并显示其中的最大者和最小者.
+		#!/bin/bash
+		#
+		declare -i max=0
+		declare -i min=0
+		declare -i i=1
+
+		while [ $i -le 9 ];do
+			rand=$RANDOM
+			echo "$rand"
+			if [ $i -eq 1 ]; then
+				max=$rand
+				min=$rand
+			fi
+			if [ $rand -gt $max ]; then 
+				max=$rand	
+			fi
+			if [ $rand -lt $min ]; then
+				min=$rand	
+			fi
+			let i++
+		done
+
+		echo "max: $max"
+		echo "min: $min"
+
+bash脚本编程
+
+	while CONDITION; do
+		循环体
+	done			
+
+	进入条件: CONDITION为true
+	退出条件: false
+
+	until CONDITION; do
+		循环体
+	done
+
+	进入条件: false
+	退出条件: true
+
+		示例: 求100以内所有正整数之和
+			#!/bin/bash
+			#
+
+			declare -i i=1
+			declare -i sum=0
+
+			until [ $i -gt 100 ]; do
+				let sum+=$i
+				let i++
+			done
+
+			echo "sum=$sum"
+
+		示例: 打印九九乘法表
+			#!/bin/bash
+			#
+
+			declare -i i=1
+			declare -i j=1
+
+			until [ $i -gt 9 ]; do
+				until [ $j -gt $i ]; do
+					echo -e -n "$j x $i = $[j*i] \t"
+					let j++
+				done
+				let i++
+				let j=1
+				echo
+			done
+	
+	循环控制语句(用于循环体中):
+		continue [N]: 提前结束第N层的本轮循环,而直接进入下一轮判断
+			while CONDITION1; do
+				COMMAND1
+				...
+				if CONDITION2; then
+					continue
+				fi
+				CMDn
+				...
+			done
+		
+		break [N]: 提前结束循环
+			while CONDITION1; do
+				COMMAND1
+				...
+				if CONDITION2; then
+					continue
+				fi
+				CMDn
+				...
+			done
+		
+		示例1: 求100以内所有偶数之和,要求循环100以内的所有正整数
+			#!/bin/bash
+			#
+			declare -i i=0
+			declare -i sum=0
+
+			until [ $i -gt 100 ]; do
+				let i++
+				if [ $[$i%2] -eq 1 ];then 
+					continue
+				fi
+				let sum+=$i
+			done
+
+			echo "Even sum: $sum"
+
+	创建死循环:
+		while true; do
+			循环体
+		done
+
+		until false; do
+			循环体
+		done
+
+
+		示例2: 每隔3秒钟到系统上获取已经登录的用户的信息,如果docker登录了, 则记录与日志中,并退出. 
+			#!/bin/bash
+			#
+
+			read -p "Enter a user name: " username
+			while true; do
+				if who | grep "^$username" &> /dev/null; then
+					break
+				fi
+				sleep 3
+			done
+
+			echo "$username logged on." >> /tmp/user.log
+
+			第2种实现:
+			#!/bin/bash
+			#
+
+			read -p "Enter a user name: " username
+			until who | grep "^$username" &> /dev/null; do
+				sleep 3
+			done
+
+			echo "$username logged on." >> /tmp/user.log
+
+	while循环的特殊用法(遍历文件的每一行):
+		while read line; do
+			循环体
+		done < /PATH/FROM/SOMEFILE
+
+		依次读取/PATH/FROM/SOMEFILE文件中的每一行,且将读到的行赋值给变量line
+
+		示例: 找出其ID号为偶数的所有用户, 显示其用户名及ID号
+			#!/bin/bash
+
+			while read line; do
+				if [ $[`echo $line | cut -d: -f3` %2] -eq 0 ]; then
+					echo -e -n "username: `echo $line | cut -d: -f1`\t"
+					echo "uid: `echo $line | cut -d: -f3`"
+				fi
+			done < /etc/passwd
+	
+	for循环的特殊格式:
+		for((控制变量初始化; 条件判断表达式; 控制变量的修正表达式)); do
+		done
+
+		示例: 求100以内所有正整数之和
+			#!/bin/bash
+
+			declare -i sum=0
+
+			for((i=1; i<=100; i++)); do
+				let sum+=$i
+			done
+
+			echo "Sum: $sum."
+		
+		示例2: 打印九九乘法表
+			#!/bin/bash
+			for((j=1; j<=9; j++));do
+				for((i=1; i<=j; i++)); do
+					echo -e -n "${i}x${j}=$[$i*$j]\t"
+				done
+				echo
+			done
+	
+	练习: 写一个脚本,完成如下任务
+		(1) 显示一个如下菜单
+			cpu) show cpu information;
+			mem) show memory information;
+			disk) show disk information;
+			quit) quit
+		(2) 提示用户选择选项
+		(3) 显示用户选择的内容
+
+			#!/bin/bash
+
+			cat << EOF
+			cpu) show cup information;
+			mem) show memory information;
+			disk) show disk information;
+			quit) quit
+			=============================
+			EOF
+
+			read -p "Enter a option: " option
+			while [ "$option" != 'cpu' -a "$option" != 'mem' -a "$option" != 'disk' -a "$option" != 'quit' ]; do
+				read -p "Wrong option, Enter again: " option
+			done
+
+			if [ "$option" == 'cpu' ]; then
+				lscpu
+			elif [ "$option" == 'mem' ]; then
+				cat /proc/meminfo
+			elif [ "$option" == 'disk' ]; then
+				fdisk -l
+			elif [ "$option" == 'quit' ]; then
+				exit 0
+			fi
+
+		进一步地:
+			用户选择,并显示完成后不退出脚本,而是提示用户继续选择显示其他内容,知道使用quit才退出.
+
+	条件判断: case语句
+		case 变量引用 in 
+			PAT1)
+				分支1
+				;;
+			PAT2)
+				分支2
+				;;
+			...
+			*)
+				默认分支
+				;;
+		esac
+		
+		示例:
+			#!/bin/bash
+
+			cat << EOF
+			cpu) show cup information;
+			mem) show memory information;
+			disk) show disk information;
+			quit) quit
+			=============================
+			EOF
+
+			read -p "Enter a option: " option
+			while [ "$option" != 'cpu' -a "$option" != 'mem' -a "$option" != 'disk' -a "$option" != 'quit' ]; do
+				read -p "Wrong option, Enter again: " option
+			done
+
+			case "$option" in
+				cpu)
+					lscpu
+					;;
+				mem)
+					cat /proc/meminfo
+					;;
+				disk)
+					fdisk -l
+					;;
+				*)
+					echo "Quit..."
+					exit 0
+					;;
+			esac
+
+		练习: 写一个脚本,完成如下要求
+			(1) 脚本可接受参数: start, stop, restart, status
+			(2) 如果参数不是以上的参数,提示用户使用格式后报错退出
+			(3) 如果是start,则创建/var/lock/subsys/SCRIPT_NAME, 并显示"启动成功"
+				考虑: 如果事先已经启动过一次,该如何处理?
+			(4) 如果是stop: 则删除/var/lock/subsys/SCRIPT_NAME, 并显示"停止完成"
+				考虑: 如果本来没有start,如何处理?
+			(5) 如果是restart, 则先stop,在start
+				考虑: 如果本来没有start, 如何处理?
+			(6) 如果是status, 则
+				如果/var/lock/subsys/SCRIPT_NAME文件存在,则显示"SCRIPT_NAME is running..."
+				如果/var/lock/subsys/SCRIPT_NAME文件不存在,则显示"SCRIPT_NAME is stoped..."
+			
+			其中: SCRIPT_NAME为当前脚本名
+
+bash脚本编程:
+
+	case 变量引用 in 
+		pat1)
+			分支1
+			;;
+		pat2)
+			分支2
+			;;
+		...
+		*)
+			分支n
+			;;
+	esac
+
+	case 支持glob风格的通配符:
+		*: 任意长度的任意字符
+		?: 任意单个字符
+		[]: 指定范围内的单个字符
+		a|b: a或者b
+
+	function: 函数
+		过程式编程: 代码重用
+			模块化编程
+			结构化编程
+
+		语法1:
+			function f_name {
+				...函数体...
+			}
+
+		语法2:
+			f_name(){
+				...函数体...
+			}	
+
+		调用: 函数只有被调用才会执行.
+			调用: 给定函数名
+				函数名出现的地方, 会被自动替换为函数代码
+
+			函数的生命周期: 被调用时创建, 返回时终止
+				return命令返回自定义状态结果
+					0: 成功
+					1-255: 失败
+
+			#!/bin/bash
+
+			function adduser {
+				if id $username &> /dev/null; then
+					echo "$usrename exists." 
+					return 1
+				else
+					useradd $username
+					[ $? -eq 0 ] && echo "add $username finished." && return 0
+				fi
+			}
+
+			for i in {1..10}; do
+				username=myuser$i
+				adduser
+			done
+
+			示例: 上一个脚本练习,使用函数封装
+				#!/bin/bash
+				#
+				# chkconfig: - 88 12
+				# description: test script for practise function
+				#
+
+				prog=$(basename $0)
+				lockfile=/var/lock/subsys/$prog
+
+				start(){
+					if [ -e $lockfile ]; then
+						echo "$prog is already running."
+						return 0
+					else
+						touch $lockfile
+						[ $? -eq 0 ] && echo "Starting $prog finished."
+					fi
+				}
+
+				stop(){
+					if [ -e $lockfile ]; then
+						rm -f $lockfile && echo "Stop $prog ok."
+					else
+						echo "$prog is not running yet."
+					fi
+				}
+
+				status(){
+					if [ -e $lockfile ]; then
+						echo "$prog is running."
+					else
+						echo "$prog is stopped."
+					fi
+				}
+
+				usage(){
+					echo "Usage: $prog {start|stop|restart|status}"
+				}
+				if [ $# -lt 1 ]; then
+					usage
+					exit 1
+				fi
+
+				case $1 in
+					start)
+						start
+						;;
+					stop)
+						stop
+						;;
+					restart)
+						stop
+						start
+						;;
+					status)
+						status
+						;;
+					*)
+						usage
+						exit $?
+						;;
+				esac
+			练习: 打印九九乘法表,利用函数实现
+
+		函数的返回值:
+			函数的执行结果返回值:
+				(1) 使用echo或print命令进行输出
+				(2) 函数体中调用命令的执行结果
+			函数的退出状态码:
+				(1) 默认取决于函数体中执行的最后一条命令的退出状态码
+				(2) 自定义退出状态码
+					return
+		
+		函数可以接受参数:
+			传递参数给函数: 调用函数时, 在函数名后面以空白分隔给定参数列表即可.
+
+			在函数体中,可以使用$1, $2, ...调用这些参数, 还可以使用$@, $*, $#等特殊变量
+
+			示例: 添加10个用户
+				#!/bin/bash
+
+				function adduser {
+					if [ $# -lt 1 ]; then
+						return 2
+						# 2: no arguments
+					fi
+					if id $1 &> /dev/null; then
+						echo "$1 exists." 
+						return 1
+					else
+						useradd $1
+						[ $? -eq 0 ] && echo "add $1 finished." && return 0
+					fi
+				}
+
+				for i in {1..10}; do
+					adduser myuser$i
+				done
+			
+			练习: 打印NN乘法表,使用函数实现
+		
+		变量作用域:
+			本地变量: 当前shell进程, 为了执行脚本会启动专用的shell进程, 因此, 本地变量的作用范围是当前shell脚本程序文件.
+			局部变量: 函数的生命周期. 函数结束时变量被自动销毁
+				如果函数中有局部变量, 其名称同本地变量. 就近原则
+			
+			在函数中定义局部变量的方法:
+				local NAME=VALUE
+
+		函数递归:
+			函数直接或间接调用自身
+
+			N!=N(N-1)(N-2)...1
+				 #!/bin/bash
+
+				factorial() {
+					if [ $1 -eq 0 -o $1 -eq 1 ]; then
+						echo 1
+					else
+						echo $[$1*$(factorial $[$1-1])]
+					fi
+				}
+
+				factorial 5
+			
+			练习: 求n阶斐波那契数列
+				#!/bin/bash
+				#
+				fab(){
+					if [ $1 -eq 1 ]; then
+						echo 1
+					elif [ $1 -eq 2 ]; then
+						echo 1
+					else
+						echo $[$(fab $[$1-1])+$(fab $[$1-2])]
+					fi
+				}
+
+				fab 7
+
+bash脚本编程:
+
+	变量: 存储单个元素的内存空间
+	数组: 存储多个元素的连续的内存空间
+		数组名
+		索引: 编号从0开始, 属于数值索引
+			注意: 索引也可以支持使用自定义的格式, 而不仅仅是数值格式
+				bash的数组支持稀疏格式: 
+
+		引用数组中的元素: ${ARRAY_NAME[INDEX]}
+	
+	声明数组: 
+		declare -a ARRAY_NAME
+		declare -A ARRAY_NAME: 关联数组, (Bash4.0以后才支持这种特性)
+	
+	数组元素的赋值:
+		(1) 一次只赋值一个元素:
+			ARRAY_NAME[INDEX]=VALUE
+				weekdays[0]="Sunday"
+				weekdays[4]="Thursday"
+		(2) 一次赋值全部元素
+			ARRAY_NAME=("VAL1" "VAL2" "VAL3" ...) //空格分隔
+		(3) 只赋值特定元素:
+			ARRAY_NAME=([0]="VAL1" [3]="VAL2" ...)
+		(4) read -a
+	
+	引用数组元素: ${ARRAY_NAME[INDEX]}
+		注意: 省略[INDEX]表示引用下标为0的元素
+
+	数组的长度(数组中元素的个数): ${#ARRAY_NAME[*]}, ${$ARRAY_NAME[@]}
+
+	示例: 生成10个随机数保存于数组中,并找出其中的最大值和最小值
+		#!/bin/bashk
+
+		declare -a rand
+		declare -i max=0
+
+		for i in {0..9}; do
+			rand[$i]=$RANDOM
+			echo ${rand[$i]}
+			[ $[rand[$i]] -gt $max ] && max=${rand[$i]}
+		done
+
+		echo "Max: $max"
+	
+	练习: 写一个脚本
+		定义一个数组, 数组中的元素是/var/log目录下所有以.log结尾的文件, 要统计其下标为偶数的文件中的行数只和
+			#!/bin/bash
+
+			declare -a files
+			files=(/var/log/*.log)
+			declare -i lines=0
+
+			for i in $(seq 0 $[${#files[*]}-1]); do
+				if [ $[$i%2] -eq 0 ]; then
+					let lines+=$(wc -l ${files[$i]} | cut -d' ' -f1)
+				fi
+			done
+
+			echo "Lines: $lines"
+		
+	引用数组中的元素:
+		所有元素: ${ARRAY[@]}, ${ARRAY[*]}
+
+		数组切片:${ARRAY[@]:offset:number}
+			offset: 要跳过的元素个数
+			number: 要取出的元素个数, 偏移量之后的所有元素: ${ARRAY[@]:offset}
+	
+	向数组中追加元素:
+		ARRAY[${#ARRAY[*]}]
+		
+	删除数组中的某个元素:
+		unset ARRAY[INDEX]
+	
+	关联数组:
+		declare -A ARRAY_NAME
+		ARRAY_NAME=([index_name1]='val1' [index_name2]='val2' ...)
+
+	练习: 生成10个随机数, 升序或降序排序
+
+bash的字符串处理工具:
+	字符串切片: 
+		${var:offset:number}
+		取字符串的最右侧几个字符: ${var: -length}
+			注意: 冒号后面必须有一个空白字符
+		
+	基于模式取子串(这个功能很方便,很重要):
+		${var#*word}: 其中word可以是指定的任意字符, 功能:自左而右,查找var变量所存储的字符串中,第一次出现的word,
+		删除字符串开头值第一次出现word字符之间的所有字符
+		${var##word}: 同上, 不过,删除的是字符串开头至最后一次由word指定的字符之间的所有内容
+			[root@localhost bin]# file="/var/log/messages"
+			[root@localhost bin]# echo ${file#*/}
+			var/log/messages
+			[root@localhost bin]# echo ${file##*/}
+			messages
+
+		${var%word*}: 其中word可以是指定的任意字符, 功能: 自右而左,查找var变量所存储的字符串中,第一次出现的word,
+		删除字符串最后一个字符向左至第一次出现word字符之间的所有字符.
+		${var%%word*}: 同上, 只不过删除字符串最右侧的字符向左值最后一次出现word字符之间的所有字符
+			[root@localhost bin]# file="/var/log/messages"
+			[root@localhost bin]# echo ${file%/*}
+			/var/log
+			[root@localhost bin]# echo ${file%%/*}
+
+			[root@localhost bin]# 
+
+		示例: url=http://www.magedu.com:80
+			${url##*:} --> 80
+			${url%%:*} --> http
+	
+	查找替换:
+		${var/pattern/substi}: 查找var所表示的字符串中,第一次被pattern所匹配到的字符串, 以substi替换之
+		${var//pattern/substi}: 查找var所表示的字符串中,所有能被pattern所匹配到的字符串, 以substi替换之
+
+		${var/#pattern/substi}: 查找var所表示的字符串中,行首被pattern所匹配到的字符串, 以substi替换之
+		${var/%pattern/substi}: 查找var所表示的字符串中,行尾被pattern所匹配到的字符串, 以substi替换之
+
+	查找并删除:
+		${var/pattern}: 查找var所表示的字符串中,删除第一次被pattern所匹配到的字符串 
+		${var//pattern}: 查找var所表示的字符串中,删除所有被pattern所匹配到的字符串 
+		${var/#pattern}: 查找var所表示的字符串中,删除行首被pattern所匹配到的字符串 
+		${var/%pattern}: 查找var所表示的字符串中,删除行尾被pattern所匹配到的字符串 
+	
+	字符大小写转换:
+		${var^^}: 把var中的所有小写字母转换为大写
+		${var,,}: 把var中的所有大写字母转换为小写
+	
+	变量赋值:
+		${var:-value}: 如果var为空或者未设置,那么返回value, 否则,则返回var的值
+		${var:=value}: 如果var为空或者未设置,那么返回value, 并且将value赋值给var, 否则,则返回var的值
+
+		${var:+value}: 如果var不为空,则返回value.
+		${var:?error_info}: 如果var为空或未设置, 那么返回error_info(这个error_info是打印在标准错误流上面的), 否则,返回var的值.
+	
+		注意: 上面的${var:[-=+?]value}的写法官方的叫法是Shell Parameter Expansion. 
+		这些写法中的冒号(:)可以不写,不写表示只判断var是否设置而不检查var是否为空.
+		${var-value}: 如果var没有设置,那么返回value, 否则,返回var的值.
+
+		具体参见: https://www.gnu.org/software/bash/manual/html_node/Shell-Parameter-Expansion.html
+		${parameter:-word}, ${parameter:=word},${parameter:?word},${parameter:+word}
+		When not performing substring expansion, using the form described below (e.g., ‘:-’), 
+		Bash tests for a parameter that is unset or null. 
+		Omitting the colon results in a test only for a parameter that is unset. 
+
+		题外话: 
+		(1)查看bash变量是否为null
+			(i)如果变量没有设置或者是null或者是空字符串，则返回true if [ -z "$var" ]; then echo "NULL"; else echo "Not NULL"; fi
+			(ii)判断bash变量是否为NULL的另一种方法： [ -z "$var" ] && echo "NULL"
+			(iii)判断bash变量是否为NULL [[ ! -z "$var" ]] && echo "Not NULL" || echo "NULL"
+		(2)怎么判断变量是否存在(被设置过)?
+			可以使用declare -p 命令确定一个变量是否存在.
+	
+	为脚本程序使用配置文件:
+		(1) 定义文本文件,每行定义"name=value"
+		(2) 在脚本中source此文件即可(也可以使用.命令)
+
+			#!/bin/bash
+
+			[ -r /tmp/hostname ] && . /tmp/hostname
+			HOSTNAME=${HOSTNAME:-www.magedu.com}
+
+			hostname $HOSTNAME
+	
+	命令:
+		mktemp命令: - create a temporary file or directory
+			mktemp [OPTION]... [TEMPLATE]
+				TEMPLATE: filename.XXX
+					XXX至少出现3次
+				OPTION:
+					-d: 创建临时目录
+					-p, --tmpdir=/PATH/TO/SOMEDIR: 指明临时文件目录位置
+
+		install命令: - copy files and set attributes.
+			install [OPTION]... [-T] SOURCE DEST			//相当于cp
+			install [OPTION]... SOURCE... DIRECTORY
+			install [OPTION]... -t DIRECTORY SOURCE...
+			install [OPTION]... -d DIRECTORY...				//创建一个目录
+				选项:
+					-m MODE
+					-o OWNER
+					-g GROUP
+
+			install命令和cp命令的区别在于,install命令可以在创建文件或目录的时候指定权限,属主,属组等attributes.
+		
+	练习: 写一个脚本
+		(1) 提示用户输入一个可执行命令名称
+		(2) 获取此命令所依赖到的所有库文件列表
+		(3) 复制命令至某目标目录(例如/mnt/sysroot)下的对应路径下
+			/bin/bash ==> /mnt/sysroot/bin/bash
+			/usr/bin/passwd ==> /mnt/sysroot/usr/bin/passwd
+		(4) 复制此命令一来到的所有库文件至目标目录下的对应路径下(注意判断原来是否已经有相应的文件,如果有了,不要覆盖,没有文件才复制)
+			/lib64/ld-linux-x86-64.so.2 ==> /mnt/sysroot/lib64/ld-linux-x86-64.so.2 
+		
+		进一步地:
+			每次复制完成一个命令后,不要退出,而是提示用户键入新的要复制的命令,并重复完成上述功能, 知道用户输入quit退出.

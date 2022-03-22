@@ -2236,6 +2236,12 @@ http协议和httpd的配置
 					--limit-rate <rate> 设置传输速度
 					-u/--user <user[:password]> 设置服务器的用户名和密码
 					-0/--http1.0 使用HTTP 1.0
+
+					-o/--output <file> 将服务器的回应保存成文件，等同于wget命令。
+						# curl -o example.html https://www.example.com		//www.example.com保存成example.html
+					-O/--remote-name 将服务器回应保存成文件，并将URL的最后部分当作文件名
+						# curl -O https://www.example.com/foo/bar.html		//将服务器回应保存成文件，文件名为bar.html
+
 				
 			另外一个工具: elinks
 				elinks [OPTION]... [URL]...
@@ -2424,7 +2430,7 @@ http的应用
 			不建议直接使用rpm直接升级, 因为apr不只是httpd一个程序在用.贸然升级可能会影响其他程序, 所以需要编译安装
 			
 			编译安装步骤:
-				1.4+b版本的apr和apr-util
+				1.4+版本的apr和apr-util
 
 				前提: 
 					安装开发环境, 安装pcre-devel
@@ -2437,12 +2443,28 @@ http的应用
 					# ./configure --prefix=/usr/local/apr-util --with=/usr/local/apr
 					# make && make install
 				
+				(3) httpd-2.4.9编译过程也要依赖pcre-devel软件包,需要实现安装, 此软件包系统光盘自带,因此,找到安装即可
+				
 				# groupadd -r apache
 				# useradd -r -g apache apache
 				# ./configure --prefix=/usr/local/apache --sysconf=/etc/httpd24 --enable-so --enable-ssl --enable-cgi --enable-rewrite \
 				--with-zlib --with-pcre --with-apr=/usr/local/apr --with-apr-util=/usr/local/apr-util --enable-modules=most \
 				--enable-mpms-shared=all --with-mpm=prefork
 				# make && make install
+			
+				补充:
+				(1) 构建MPM为静态模块
+				在全部平台中, MPM都可以构建为静态模块.在构建市选择一种MPM,链接到服务器中.如果要改变MPM,必须重新构建.为了使用给指定的MPM,
+				请在执行configure脚本时,使用参数 --with-mpm=NAME. NAME是指定的MPM名称(prefork, worker, event).编译完成后,
+				可以使用 ./httpd -l来确定选择的MPM. 此命令会列出编译到服务器程序中的所有模块, 包括MPM.
+
+				(2) 构建MPM为动态模块
+				在Unix或类似平台中,MPM可以构建为动态模块,与其他动态模块一样在运行时加载. 构建MPM为动态模块允许通过修改LoadModule指令内容来改变MPM,
+				而不用重新构建服务器程序.在执行configure脚本时,使用--enable-mpms-shared选项即可启用此特性. 当给出的参数为all时,所有此平台支持的
+				MPM模块都会被安装. 还可以才参数中给出模块列表. 默认MPM, 可以自动选择或者在执行configure时通过--with-mpm选项来指定, 然后出现在生成
+				的服务器配置文件中. 编辑LoadModule指令内容可以选择不同的MPM.
+				
+
 
 				启动服务:
 					apachectl
@@ -2892,6 +2914,8 @@ LAMP(2)
 								172.16.0.0/16, 172.16.%.%
 							_: 匹配任意单个字符
 					
+					# mysql -uroot -hlocalhost -p
+					
 					命令:
 						客户端命令: 本地执行
 							mysql> help
@@ -3132,6 +3156,62 @@ LAMP(2)
 		UPDATE:
 			UPDATE tbl_name SET col1=new_val1, col2=new_val2, ... [WHERE clause]  [ORDER BY 'col_name' [ASC|DESC]] [LIMIT [m,]n];
 
-	DCL:
+	用户账号及权限管理:
+
+		用户账号: 'user'@'host'
+			user: 用户名
+			host: 次用户访问mysqld服务时允许通过哪些主机远程创建连接
+				IP, 网络地址, 主机名, 通配符(%和_)
+		
+			禁止检查主机名:
+				my.cnf, [mysqld]
+				skip_name_resolve = yes
+
+		创建用户账号:
+			CREATE USER 'username'@'host' [INDENTIFIED BY 'password'];
+
+		删除用户:
+			DROP USER 'username'@'host'
+		
+		授权:
+			权限级别: 管理权限,数据库,表,字段,存储例程(存储函数和存储过程)
+
+			GRANT priv_type,... ON [object_type] db_name.tbl_name TO 'user'@'host' [IDENTIFIED BY 'password'] [WITH GRANT OPTION]
+
+				priv_type: ALL [PRIVILEGES]
+				db_name.tbl_name:
+					*.*: 所有库的所有表
+					db_name.*: 指定库的所有表
+					db_name.tbl_name: 指定库的指定表
+					db_name.routine_name: 指定库的存储例程
+				
+		查看指定用户获得的授权:
+			SHOW GRANTS FOR 'user'@'host';
+
+			SHOW GRANTS FOR CURRENT_USER;
+		
+		回收授权:
+			REVOKE priv_type, ... ON db_name.tbl_name FROM 'user'@'host';
+
+		注意:MariDB服务进程启动时会读取mysql库中的所有授权表至内存中.
+			(1) GRANT或REVOKE等执行权限会保存于表中,MariaDB的服务进程会自动重读授权表
+			(2) 对于不能够或不能及时重读授权表的命令,可以手动让MariaDB的服务进程重读授权表
+				mysql> FLUSH PRIVILEGES;
+
+LAMP组合的编译安装:
+	httpd+php
+		modules: 把php编译成httpd的DSO对象:
+			prefork: libphp5
+			event, worker: libphp5-zts
+		cgi
+		fpm(fastcgi): php作为独立的服务
+
+	httpd对fastcgi协议的支持:
+		httpd-2.2: 需要额外安装fcgi模块
+		httpd-2.4: 自带fcgi模块
+
+	安装次序:
+		httpd, MariaDB, php
+	
 
 				
