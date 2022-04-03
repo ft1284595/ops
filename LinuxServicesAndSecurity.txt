@@ -3213,5 +3213,262 @@ LAMP组合的编译安装:
 	安装次序:
 		httpd, MariaDB, php
 	
+博客作业: 编译lamp
+	(1) php是模块
+	(2) fpm;
+		(a) 提供两个虚拟主机
+			web1: phpMyAdmin, 同时提供ssl;
+			web2: wordpress;
 
+sudo:
+
+	su: Switch User
+
+		su -l user -c 'COMMAND'
+	
+	su -l root -c 'COMMAND'
+
+	su -l root
+
+	sudo:
+		sudo是可以让某个用户不需要拥有管理员的密码,可以执行管理员的权限的.
+		作为管理员可以指派某些用户可以执行某些特定命令,类似于suid
+		授权之后,能够让某用户以另外一个用户的身份运行命令:
+		
+		配置文件: /etc/sudoers
+		帮助文档 # man sudoers
+		编辑配置文件可以使用visudo命令. 相比于vim编辑配置文件,visudo命令对于sudoers配置文件有语法检查.
+		这个文件中有个配置条目的语法是:
+		user	MACHINE=COMMANDS
+		The COMMANDS section may have other options added to it
+
+		配置项: 
+			users 	hosts=(runas) 	commands
+			
+			users:
+				username
+				$uid
+				user_alias
+				%group_name
+				%#gid
+			
+			host:
+				ip
+				hostname
+				netaddr
+			
+			command:
+				command name
+				directory
+				sudoedit
+			
+			Alias_Type NAME = item1, item2, ...
+				NAME: 必须使用大写
+				Alias_Type: 
+					User_Alias
+					Host_Alias
+					Runas_Alias
+					Cmnd_Alias
+			
+			例子:
+				User_Alias NETADMIN = netuse1, netuser2
+				Cmnd_Alias NETADMINCMNDS = /usr/sbin/ip
+
+				NETADMIN 	ALL=(root)		NETADMINCMNDS		//给与netuser1和netuser2以root执行ip命令的权限
+
+				User_Alias	USERADMIN = poweruser1, poweruser2
+				Cmnd_Alias 	USERADMINCMNDS = /usr/sbin/useradd, /usr/sbin/usermod, /usr/bin/passwd [a-z]*, !/usr/bin/passwd root
+
+				USERADMIN 	ALL=(root)		NOPASSWD:USERADMINCMNDS
+				这里的/usr/bin/passwd [a-z]*, !/usr/bin/passwd root 是为了不让普通用户sudo修改root的密码
+
+
+		格式1:	用户	主机=(可以变换的身份) 可以执行的命令
+		格式2: 	用户 	主机=[(转换到哪些用户或用户组)] [是否需要密码验证] 命令1,[(转换到哪些用户或用户组)] [是否需要密码验证] [命令2]....
+
+		例如:
+		//允许root用户在任何地方执行任何命令
+		root 		ALL=(ALL)		ALL
+
+		//让普通用户fieldyang具有所有超级用户的权限而又不用输入密码
+		fieldyang 	ALL=（ALL) 		NOPASSWD:ALL
+
+		//允许wheel这个组中的所有人运行所有的命令
+		%wheel 		ALL=(ALL)		ALL
+
+		//beinan用户能够在任何可能出现的主机名的主机中,能够转换到root下执行 /bin/chown,无需输入beinan用户的密码;
+		//并且能够转换到任何用户下执行/bin/chmod命令,但执行chmod时需要beinan输入自己的密码
+		beinan ALL=(root) NOPASSWD:/bin/chown,/bin/chmod
+
+
+		# sudo [-u user] COMMAND
+				-u user: user默认为root
+				-k: 清除此前记录的用户密码,也就是下一次sudo操作必须输入密码才能运行
+		# sudo -l		//查看在这台主机上允许和禁止运行的命令
+
+I/O: 网络,存储
+	存储:
+		DAS: Direct Attached Storage
+			接口类型: "block"
+			设备: SATA, SAS; IDE, SCSI; USB;	
+		NAS: Network Attached Storage
+			接口类型: "file"
+			协议: CIFS(samba), NFS(Network File System)
+			RPC: Remote Procecure Call
+		SAN: Storage Area Network
+			接口类型: "block"
+			协议: ISCSI(IP-SAN), FCSAN, FCoE, ...
+			这种存储是需要先格式化后才能使用的
+		应用层:
+			ftp,...
+	
+	文件服务: ftp, cifs/nfs
+
+文件共享服务:
+
+	应用层: ftp, 应用层的文件共享服务的好处是它可以跨平台,缺点是它不能向本地磁盘一样使用,或者直接编辑其中的文件都是很困难的.
+	内核: nfs(早期是SUN公司研发的), 解决应用层不能直接编辑文件的痛点,它可以向磁盘一样使用. 它是工作在内核中的,所以很难跨平台(和unix之间可以连通,和window之间很困难).
+	跨平台: samba
+		在Linux(Unix)上实现CIFS(SMB)协议 
+
+	DAS, NAS, SAN
+
+
+ftp: 
+	ftp: file transfer protocol, 文件传输协议;
+		应用层协议: tcp, 21/tcp
+		两类连接:
+			命令连接: 传输命令,文件管理类命令:
+			数据连接: 传输数据
+				两种模式:
+					主动模式: PORT
+						Server: 20/tcp连接客户端的命令连接使用的端口向后的第一个可用端口
+					被动模式: PASV
+						Server: 打开一个随机端口,并等待客户端连接
+	
+	PAM: Pluggable Authenticate Module
+		认证架构: 库,高度模块化
+
+	协议: C/S
+		Server:
+			Windows: Serv-U, IIS, FIlezilla
+			开源: wuftpd, proftpd, pureftpd, vsftpd(Very Secure FTP daemon),...
+		Client:
+			Windows: ftp, Filezilla, CuteFTP, FlashFXP,...
+			开源: lftp, ftp, Filezilla, gftp, 
+			大多数的浏览器都支持作为ftp客户端使用
+	
+	vsftpd:
+		vsftpd is a Very Secure FTP daemon. It was written completely from scratch.
+
+		URL:
+			SCHEME://username:password@HOST:PORT/PATH/TO/FILE
+
+			路径映射:
+				用户家目录: 每个用户的URL的/映射到当前用户的家目录;
+			
+		vsftpd以ftp用户的身份运行进程,默认用户即为ftp用户,匿名用户的默认路径即ftp用户的家目录/var/ftp
+			ftp,anonymous
+
+			注意: 一个用户通过共享服务访问文件系统上的文件的生效权限是此二者(用户的系统权限和vsftp的共享权限{定义在配置文件中})的交集.
+		
+		程序环境:
+			主程序: /uusr/sbin/vsftpd
+			主配置文件: /etc/vsftpd/vsftpd.conf
+			数据根目录: /var/ftp
+			Systemd Unit File: /usr/lib/systemd/system/vsftpd.service
+
+			配置vsftpd:
+
+				用户类别:
+					匿名用户: anonymous-->ftp,/var/ftp
+					系统用户: 至少禁止系统用户访问ftp服务,/etc/vsftpd/ftpusers, PAM(/etc/pam.d/vsftpd)
+					虚拟用户: 非系统用户,用户账号不是那些可登录操作系统的用户账号(非/etc/passwd中的用户);
+
+					用户通过vsftp服务访问到的默认路径,使用户自己的家目录;默认可以自己有权限访问的所有路径间切换;
+					禁锢用户与其家目录中;
 				
+				配置文件: /etc/vsftpd/vsftpd.conf
+					语法格式如下:
+					directive value
+					注意: directive之前不能有多余字符;
+					#man vsftpd.conf查看更多帮助信息
+
+				匿名用户:
+					anonymous_enable=YES
+					ano_uploa_enable=YES
+					anon_mkdir_write_enable=YES
+					anno_other_write_enable=NO		//除了上传文件和创建目录之外的其他权限,比如删除权限,重命名等等
+
+					anno_umask=077
+
+				系统用户:
+					local_enable=YES
+					write_enable=YES
+
+					辅助配置文件/etc/vsftpd/ftpusers;
+						列在这个文件中的用户 均禁止使用ftp服务;
+
+					chroot_local_user=YES
+						禁锢所有本地用户 于其家目录;需要事先去除用户对家目录的写权限;
+					
+					chroot_list_enable=YES
+					chroot_list_file=/etc/vsftpd/chroot_list
+						禁锢列表中文件存在的用户于其家目录中;需要实现取出用户对家目录的写权限;
+				
+				传输日志:
+					xferlog_enable=YES
+					vferlog_file=/var/log/xferlog
+					xferlog_std/format=YES
+				
+				守护进程的类型:
+					standalone: 独立守护进程;有服务进程字型监听套接字,并接受用户访问请求
+					transient: 瞬时守护进程;由受托管方代为监听套接字,服务进程没有访问请求时不启动;当托管方收到访问请求时,才启动服务进程
+						CentOS 6: xinetd独立守护进程,/etc/xinetd.d/
+						CentOS 7: 由systemd代为监听
+
+				控制可登录vsftpd服务的用户列表:
+					userlist_enable=YES
+						启用/etc/vsftpd/user_list文件夹来控制可登录用户
+					userlist_deny=
+						YES: 意味着这是黑名单
+						NO: 白名单
+					
+				上传下载速率:
+					anno_max_rate=0			//0表示不限制
+					local_max_rate=0
+				
+				并发连接数限制:
+					max_clients=2000
+					max_per_ip=50
+
+			虚拟用户:
+				用户账号存储于何处?
+					文件,MySQL,Redis,...
+				
+				vsftpd:认证功能托管给pam
+					基于哪种存储服务来储存用户信息,以及对存储服务的驱动要靠pam实现
+				
+				pam_mysql:
+					# yum install mariadb-devel pam-devel
+
+					# ./configure --with-pam=/usr --with-mysql=/usr --with-pam-mods-dir=/usr/lib64/security
+					# make && make install
+
+				创建数据库,授权用户,穿件账号和密码;
+
+					提供配置文件: /etc/pam.d/vsftpd.vusers
+						auth required /usr/lib64/security/pam_mysql.so user=vsftpd passrd=mageedu host=127.0.0.1 db=vsftpd table=users usercolumn=name passwdcolumne=password crypt=2
+						account required /usr/lib64/security/pam_mysql.so user=vsftpd passwd=mageedu host=127.0.0.1 db=vsftpd table=users usercolumn=name passwdcolumn=password crypt=2
+				
+				配置vsftpd,变价或修改以下选项:
+					pam_service_name=vsftpd.vusers
+					guest_enable=YES
+					guest_username=vuser
+				
+				虚拟用户的写权限,通过匿名一样的指令进行定义:
+					还能实现不同的用户有不同的权限;
+
+					user_config_dir=/etc/vsftpd/vusers_config/
+
+	博客作业: pam_mysql认证ftp虚拟用户账号,且拥有不同的权限

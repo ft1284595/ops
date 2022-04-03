@@ -995,6 +995,14 @@ bash的基础特性(2):
 					a*b: 
 						aab, ab, a123b,aosdifjoaisdjfpoidfb
 						abc
+			(1_a) ** 
+				如果想要很方便地遍历所有的目录和文件得用两个星号(**)的通配符。globstar是Bash 4.0才引入的选项,当设置启用globstar(shopt -s globstar)时,
+				两个星号(**)意为对通配符进行展开就可以匹配任何当前目录(包括子目录)以及其的文件;若不启用globstar(shopt -u globstar),
+				两个星号通配符(**)的作用和一个星号通配符是相同的。
+				globstar
+				If set, the pattern ‘**’ used in a filename expansion context will match all files and zero or more directories and subdirectories. 
+				If the pattern is followed by a ‘/’, only directories and subdirectories match.
+
 			(2) ?
 				表示单个任意字符
 					a?b:
