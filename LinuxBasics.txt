@@ -662,6 +662,8 @@ Linux的文件系统:
 	根文件系统(rootfs):
 		root filesystem
 
+	可以使用man hier来查看具体的信息
+	
 	LSB, FHS: (Filesystem, Hierarchy Standard)	
 		/etc, /usr, /var, /root, /home, /dev
 	
